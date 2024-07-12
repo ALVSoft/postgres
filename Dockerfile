@@ -1,29 +1,46 @@
 ARG PG_MAJOR_VERSION=16
+ARG DEBIAN_FRONTEND=noninteractive
+
 FROM postgres:${PG_MAJOR_VERSION} AS pgmq-builder
 ARG PG_MAJOR_VERSION
+ARG DEBIAN_FRONTEND 
 
 RUN apt-get update && \
     apt-get install -y \
       ca-certificates \
       clang \
+      coreutils \
       curl \
       gcc \
       git \
+      gnupg \
+      libicu${LIBICU_VERSION} \
       libssl-dev \
       make \
+      openssl \
       pkg-config \
-      postgresql-server-dev-${PG_MAJOR_VERSION}
-
-# Install pgmq and pg_partman
-RUN cd /usr/src/ && \
+      postgresql-server-dev-${PG_MAJOR_VERSION} \
+      postgis \
+      postgresql-postgis \
+      postgresql-${PG_MAJOR_VERSION}-pgvector \
+      postgresql-${PG_MAJOR_VERSION}-partman \
+      pgcopydb \
+      patroni \
+      check-patroni && \
+    cd /usr/src/ && \
     git clone https://github.com/tembo-io/pgmq.git && \
     cd pgmq/pgmq-extension && \
     make && \
     make install && \
-    make install-pg-partman
+    #make install-pg-partman
+    echo "deb [trusted=yes] https://apt.postgresml.org ${PGML_LSB_RELEASE_CS} main" > /etc/apt/sources.list.d/postgresml.list && \
+    apt-get update && \
+    apt-get install -y \
+      postgresql-pgml-${PG_MAJOR_VERSION}
 
 FROM postgres:${PG_MAJOR_VERSION}
 ARG PG_MAJOR_VERSION
+ARG DEBIAN_FRONTEND
 ARG LIBICU_VERSION=72
 ARG PARADEDB_TELEMETRY=false
 ARG PGML_LSB_RELEASE_CS=jammy
@@ -38,39 +55,13 @@ COPY --from=pgmq-builder /usr/share/postgresql/${PG_MAJOR_VERSION}/extension /us
 COPY --from=pgmq-builder /usr/lib/postgresql/${PG_MAJOR_VERSION}/lib /usr/lib/postgresql/${PG_MAJOR_VERSION}/lib
 COPY --from=pgmq-builder /usr/src/pgmq/images/pgmq-pg/postgresql.conf /usr/share/postgresql/${PG_MAJOR_VERSION}/postgresql.conf.sample
 
-# DEBIAN_FRONTEND=noninteractive && \ apt-get install -y --no-install-recommends --fix-missing
+# apt-get install -y --no-install-recommends --fix-missing
 RUN apt-get update && \
     apt-get install -y \
-      ca-certificates \
-      coreutils \
-      gnupg \
-      libicu${LIBICU_VERSION} \
-      openssl \
-      systemd \
-      systemd-sysv \
-      postgis \
-      postgresql-postgis \
-      postgresql-${PG_MAJOR_VERSION}-pgvector \
-      postgresql-${PG_MAJOR_VERSION}-partman \
-      pgcopydb \
-      patroni \
-      check-patroni 
-
-RUN RUNLEVEL=1 echo "deb [trusted=yes] https://apt.postgresml.org ${PGML_LSB_RELEASE_CS} main" > /etc/apt/sources.list.d/postgresml.list && \
-    apt-get update && \
-    apt-get install -y \
-      postgresql-pgml-${PG_MAJOR_VERSION} \
-      pgcat
+      ca-certificates
 
 RUN apt-get clean && \
-    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
-    rm -rf /lib/systemd/system/multi-user.target.wants/* && \
-    rm -rf /etc/systemd/system/*.wants/* && \
-    rm -rf /lib/systemd/system/local-fs.target.wants/* && \
-    rm -rf /lib/systemd/system/sockets.target.wants/*udev* && \
-    rm -rf /lib/systemd/system/sockets.target.wants/*initctl* && \
-    rm -rf /lib/systemd/system/sysinit.target.wants/systemd-tmpfiles-setup* && \
-    rm -rf /lib/systemd/system/systemd-update-utmp*
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 USER postgres
 CMD ["postgres"]
