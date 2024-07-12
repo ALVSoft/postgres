@@ -18,9 +18,9 @@ RUN apt-get update && \
 # Install pgmq and pg_partman
 RUN cd /usr/src/ && \
     git clone https://github.com/tembo-io/pgmq.git && \
-    cd pgmq && \
+    cd ./pgmq && \
     git checkout ${PGMQ_VERSION} && \
-    cd pgmq-extension && \
+    cd ./pgmq-extension && \
     make && \
     make install && \
     make install-pg-partman
