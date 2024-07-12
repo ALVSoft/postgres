@@ -38,10 +38,8 @@ COPY --from=pgmq-builder /usr/share/postgresql/${PG_MAJOR_VERSION}/extension /us
 COPY --from=pgmq-builder /usr/lib/postgresql/${PG_MAJOR_VERSION}/lib /usr/lib/postgresql/${PG_MAJOR_VERSION}/lib
 COPY --from=pgmq-builder /usr/src/pgmq/images/pgmq-pg/postgresql.conf /usr/share/postgresql/${PG_MAJOR_VERSION}/postgresql.conf.sample
 
-RUN echo "deb [trusted=yes] https://apt.postgresml.org ${PGML_LSB_RELEASE_CS} main" > /etc/apt/sources.list.d/postgresml.list
-# apt-get install -y --no-install-recommends --fix-missing
-RUN DEBIAN_FRONTEND=noninteractive && \
-    apt-get update && \
+# DEBIAN_FRONTEND=noninteractive && \ apt-get install -y --no-install-recommends --fix-missing
+RUN apt-get update && \
     apt-get install -y \
       ca-certificates \
       coreutils \
@@ -56,19 +54,23 @@ RUN DEBIAN_FRONTEND=noninteractive && \
       postgresql-${PG_MAJOR_VERSION}-partman \
       pgcopydb \
       patroni \
-      check-patroni \
+      check-patroni 
+
+RUN echo "deb [trusted=yes] https://apt.postgresml.org ${PGML_LSB_RELEASE_CS} main" > /etc/apt/sources.list.d/postgresml.list && \
+    apt-get update && \
+    apt-get install -y \
       postgresql-pgml-${PG_MAJOR_VERSION} \
       pgcat
 
-RUN apt-get clean \
-    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
-    && rm -rf /lib/systemd/system/multi-user.target.wants/* \
-    && rm -rf /etc/systemd/system/*.wants/* \
-    && rm -rf /lib/systemd/system/local-fs.target.wants/* \
-    && rm -rf /lib/systemd/system/sockets.target.wants/*udev* \
-    && rm -rf /lib/systemd/system/sockets.target.wants/*initctl* \
-    && rm -rf /lib/systemd/system/sysinit.target.wants/systemd-tmpfiles-setup* \
-    && rm -rf /lib/systemd/system/systemd-update-utmp*
+RUN apt-get clean && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
+    rm -rf /lib/systemd/system/multi-user.target.wants/* && \
+    rm -rf /etc/systemd/system/*.wants/* && \
+    rm -rf /lib/systemd/system/local-fs.target.wants/* && \
+    rm -rf /lib/systemd/system/sockets.target.wants/*udev* && \
+    rm -rf /lib/systemd/system/sockets.target.wants/*initctl* && \
+    rm -rf /lib/systemd/system/sysinit.target.wants/systemd-tmpfiles-setup* && \
+    rm -rf /lib/systemd/system/systemd-update-utmp*
 
 USER postgres
 CMD ["postgres"]
