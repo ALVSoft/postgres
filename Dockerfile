@@ -1,9 +1,13 @@
 ARG PG_MAJOR_VERSION=16
 ARG DEBIAN_FRONTEND=noninteractive
+ARG PARADEDB_TELEMETRY=false
 
-FROM postgres:${PG_MAJOR_VERSION} AS pgmq-builder
+FROM postgres:${PG_MAJOR_VERSION} AS builder
 ARG PG_MAJOR_VERSION
-ARG DEBIAN_FRONTEND 
+ARG DEBIAN_FRONTEND
+ARG PARADEDB_TELEMETRY
+ARG LIBICU_VERSION=72
+ARG PGML_LSB_RELEASE_CS=jammy 
 
 RUN apt-get update && \
     apt-get install -y \
@@ -41,9 +45,7 @@ RUN apt-get update && \
 FROM postgres:${PG_MAJOR_VERSION}
 ARG PG_MAJOR_VERSION
 ARG DEBIAN_FRONTEND
-ARG LIBICU_VERSION=72
-ARG PARADEDB_TELEMETRY=false
-ARG PGML_LSB_RELEASE_CS=jammy
+ARG PARADEDB_TELEMETRY
 ENV PARADEDB_TELEMETRY=$PARADEDB_TELEMETRY
 ENV TZ=UTC
 
@@ -51,9 +53,9 @@ LABEL maintainer="TKamitaSoft Service - https://tkamitasoft.com" \
       org.opencontainers.image.description="TKamitaSoft PostgrSQL database" \
       org.opencontainers.image.source="https://gitlab.com/tkamitasoft/apps/host"
 
-COPY --from=pgmq-builder /usr/share/postgresql/${PG_MAJOR_VERSION}/extension /usr/share/postgresql/${PG_MAJOR_VERSION}/extension
-COPY --from=pgmq-builder /usr/lib/postgresql/${PG_MAJOR_VERSION}/lib /usr/lib/postgresql/${PG_MAJOR_VERSION}/lib
-COPY --from=pgmq-builder /usr/src/pgmq/images/pgmq-pg/postgresql.conf /usr/share/postgresql/${PG_MAJOR_VERSION}/postgresql.conf.sample
+COPY --from=builder /usr/share/postgresql/${PG_MAJOR_VERSION}/extension /usr/share/postgresql/${PG_MAJOR_VERSION}/extension
+COPY --from=builder /usr/lib/postgresql/${PG_MAJOR_VERSION}/lib /usr/lib/postgresql/${PG_MAJOR_VERSION}/lib
+COPY --from=builder /usr/src/pgmq/images/pgmq-pg/postgresql.conf /usr/share/postgresql/${PG_MAJOR_VERSION}/postgresql.conf.sample
 
 # apt-get install -y --no-install-recommends --fix-missing
 RUN apt-get update && \
