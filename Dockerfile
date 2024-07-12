@@ -56,7 +56,7 @@ RUN apt-get update && \
       patroni \
       check-patroni 
 
-RUN echo "deb [trusted=yes] https://apt.postgresml.org ${PGML_LSB_RELEASE_CS} main" > /etc/apt/sources.list.d/postgresml.list && \
+RUN RUNLEVEL=1 echo "deb [trusted=yes] https://apt.postgresml.org ${PGML_LSB_RELEASE_CS} main" > /etc/apt/sources.list.d/postgresml.list && \
     apt-get update && \
     apt-get install -y \
       postgresql-pgml-${PG_MAJOR_VERSION} \
