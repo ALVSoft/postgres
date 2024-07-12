@@ -52,9 +52,10 @@ jobs:
             alvsoft/postgres:latest
             tkamitasoft/postgres:16
             tkamitasoft/postgres:latest
-            # ghcr.io/alvsoft/postgres:latest
-            # ghcr.io/alvsoft/postgres:16
-            # ghcr.io/tkamitasoft/postgres:latest
-            # ghcr.io/tkamitasoft/postgres:16
             c8n.io/lucatchomba/postgres:16
             c8n.io/lucatchomba/postgres:latest
+
+# ghcr.io/alvsoft/postgres:latest
+# ghcr.io/alvsoft/postgres:16
+# ghcr.io/tkamitasoft/postgres:latest
+# ghcr.io/tkamitasoft/postgres:16
