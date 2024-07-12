@@ -1,7 +1,6 @@
 ARG PG_MAJOR_VERSION=16
 FROM postgres:${PG_MAJOR_VERSION} AS pgmq-builder
 ARG PG_MAJOR_VERSION
-ARG PGMQ_VERSION=v1.3.3
 
 RUN apt-get update && \
     apt-get install -y \
@@ -18,10 +17,7 @@ RUN apt-get update && \
 # Install pgmq and pg_partman
 RUN cd /usr/src/ && \
     git clone https://github.com/tembo-io/pgmq.git && \
-    cd pgmq && \
-    git checkout ${PGMQ_VERSION}
-COPY /usr/src/pgmq/pgmq-extension pgmq-extension
-RUN cd pgmq-extension && \
+    cd pgmq/pgmq-extension && \
     make && \
     make install && \
     make install-pg-partman
