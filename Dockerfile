@@ -4,7 +4,6 @@ ARG PARADEDB_TELEMETRY=false
 
 FROM postgres:${PG_MAJOR_VERSION}
 
-ARG PG_MAJOR_VERSION
 ARG DEBIAN_FRONTEND
 ARG PARADEDB_TELEMETRY
 ENV PARADEDB_TELEMETRY=$PARADEDB_TELEMETRY
@@ -22,10 +21,10 @@ RUN apt-get update && \
       patroni \
       check-patroni
 
-RUN curl https://sh.rustup.rs -sSf | sh -s -- -y && \
-    #PATH="/root/.cargo/bin:${PATH}" && \
-    . "$HOME/.cargo/env" && \
-    cargo install pg-trunk
+RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
+ENV PATH="/root/.cargo/bin:${PATH}"
+RUN cargo install pg-trunk
+ENV PATH=$(echo ${PATH#/root/.cargo/bin:})
 
 RUN trunk install \
       postgis \
