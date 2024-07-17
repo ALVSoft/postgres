@@ -36,9 +36,9 @@ RUN trunk install \
     rustup self uninstall
     
 SHELL ["/bin/sh", "-c"]
-RUN apt-get clean && \
-    apt-get remove curl && \
-    apt-get autoremove && \
+RUN apt-get purge -y curl && \
+    apt-get autoremove -y && \
+    apt-get clean -y && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 USER postgres
