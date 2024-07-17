@@ -21,7 +21,7 @@ RUN apt-get update && \
       pgcopydb \
       patroni \
       check-patroni && \
-    curl https://sh.rustup.rs -sSf | sh && \
+    curl https://sh.rustup.rs -sSf | sh -s -- -y && \
     cargo install pg-trunk && \
     trunk install \
       postgis \
