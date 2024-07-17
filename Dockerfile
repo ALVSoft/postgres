@@ -23,7 +23,8 @@ RUN apt-get update && \
       check-patroni
 
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y && \
-    PATH="/root/.cargo/bin:${PATH}" && \
+    #PATH="/root/.cargo/bin:${PATH}" && \
+    . "$HOME/.cargo/env" && \
     cargo install pg-trunk
 
 RUN trunk install \
