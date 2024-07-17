@@ -20,18 +20,22 @@ RUN apt-get update && \
       curl \
       pgcopydb \
       patroni \
-      check-patroni && \
-    curl https://sh.rustup.rs -sSf | sh -s -- -y && \
-    cargo install pg-trunk && \
-    trunk install \
+      check-patroni
+
+RUN curl https://sh.rustup.rs -sSf | sh -s -- -y && \
+    PATH="/root/.cargo/bin:${PATH}" && \
+    cargo install pg-trunk
+
+RUN trunk install \
       postgis \
       pgrouting \
       pghydro \
       pgvector \
       pg_partman \
       pgmq \
-      postgresml && \
-    cargo uninstall pg-trunk && \
+      postgresml
+
+RUN cargo uninstall pg-trunk && \
     rustup self uninstall && \
     apt-get clean && \
     apt-get remove curl && \
