@@ -24,8 +24,6 @@ RUN apt-get update && \
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
 SHELL [ "/bin/sh", "-s", ".", "$HOME/.cargo/env" ]
 RUN cargo install pg-trunk
-SHELL ["/bin/sh", "-c"]
-
 RUN trunk install \
       postgis \
       pgrouting \
@@ -33,11 +31,12 @@ RUN trunk install \
       pgvector \
       pg_partman \
       pgmq \
-      postgresml
-
-RUN cargo uninstall pg-trunk && \
-    rustup self uninstall && \
-    apt-get clean && \
+      postgresml && \
+    cargo uninstall pg-trunk && \
+    rustup self uninstall
+    
+SHELL ["/bin/sh", "-c"]
+RUN apt-get clean && \
     apt-get remove curl && \
     apt-get autoremove && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
