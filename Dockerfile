@@ -22,9 +22,11 @@ RUN apt-get update && \
       check-patroni
 
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
+ENV BACK_PATH=$PATH
 ENV PATH="/root/.cargo/bin:${PATH}"
 RUN cargo install pg-trunk
-ENV PATH=$(echo ${PATH#/root/.cargo/bin:})
+ENV PATH=$BACK_PATH
+ENV BACK_PATH=
 
 RUN trunk install \
       postgis \
