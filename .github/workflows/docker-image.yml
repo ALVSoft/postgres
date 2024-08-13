@@ -29,12 +29,12 @@ jobs:
       #     username: ${{ github.repository_owner }}
       #     password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Login to c8n.io Harbor Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: c8n.io
-          username: ${{ secrets.C8N_USERNAME }}
-          password: ${{ secrets.C8N_SECRET }}
+      # - name: Login to c8n.io Harbor Container Registry
+      #   uses: docker/login-action@v3
+      #   with:
+      #     registry: c8n.io
+      #     username: ${{ secrets.C8N_USERNAME }}
+      #     password: ${{ secrets.C8N_SECRET }}
         
       - name: Build and push Docker images (PostgreSQL 16)
         uses: docker/build-push-action@v6
@@ -49,10 +49,8 @@ jobs:
           tags: |
             alvsoft/postgres:16
             alvsoft/postgres:latest
-            tkamitasoft/postgres:16
-            tkamitasoft/postgres:latest
-            c8n.io/lucatchomba/postgres:16
-            c8n.io/lucatchomba/postgres:latest
+            # c8n.io/lucatchomba/postgres:16
+            # c8n.io/lucatchomba/postgres:latest
 
 # ghcr.io/alvsoft/postgres:latest
 # ghcr.io/alvsoft/postgres:16
