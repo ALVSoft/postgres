@@ -141,9 +141,9 @@ ENV LC_ALL=$LC_ALL LANG=$LANG EDITOR=/usr/bin/editor
 ENV PGDATA=$PGDATA PATH=$PATH:$PGBIN
 ENV ETCDCTL_API=3
 
-COPY /usr/src/patroni/patroni /patroni/
-COPY /usr/src/patroni/extras/confd/conf.d/haproxy.toml /etc/confd/conf.d/
-COPY /usr/src/patroni/extras/confd/templates/haproxy.tmpl /etc/confd/templates/
+COPY --from=builder /usr/src/patroni/patroni /patroni/
+COPY --from=builder /usr/src/patroni/extras/confd/conf.d/haproxy.toml /etc/confd/conf.d/
+COPY --from=builder /usr/src/patroni/extras/confd/templates/haproxy.tmpl /etc/confd/templates/
 COPY patroni*.py docker/entrypoint.sh /
 COPY postgres?.yml $PGHOME/
 
