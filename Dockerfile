@@ -13,8 +13,8 @@ ARG PGHOME
 ARG PGDATA
 ARG LC_ALL
 ARG LANG
-
-ENV ETCD_VER=v3.5.15
+ARG ETCD_VER=v3.5.16
+ARG PATRONI_VER=v3.3.2
 
 RUN set -ex \
     && export DEBIAN_FRONTEND=noninteractive \
@@ -48,13 +48,18 @@ RUN set -ex \
     && chown -R postgres:postgres /var/log \
 \
     # Download etcd
-    && curl -sL "https://github.com/etcd-io/etcd/releases/download/$ETCD_VER/etcd-$ETCD_VER-linux-$(dpkg --print-architecture).tar.gz" \
-            | tar xz -C /usr/local/bin --strip=1 --wildcards --no-anchored etcd etcdctl \
+    && curl -sL "https://github.com/etcd-io/etcd/releases/download/${ETCD_VER}/etcd-${ETCD_VER}-linux-$(dpkg --print-architecture).tar.gz" \
+        | tar xz -C /usr/local/bin --strip=1 --wildcards --no-anchored etcd etcdctl \
 \
     # Install PostGis
     && apt-cache --important depends postgis \
         | sed -n -e 's/.*Depends: \([^<].*[^>].\+\)$/\1/p' \
         | xargs apt-get install -y \
+\
+    # Download patroni sources
+    && mkdir /usr/src/patroni \
+    && curl -sL "https://github.com/patroni/patroni/archive/refs/tags/${PATRONI_VER}.tar.gz" \
+        | tar xz -C /usr/src/patroni --strip-components=1 \
 \
     # Clean up all useless packages and some files
     && apt-get purge -y --allow-remove-essential python3-pip gzip bzip2 util-linux e2fsprogs \
@@ -136,15 +141,16 @@ ENV LC_ALL=$LC_ALL LANG=$LANG EDITOR=/usr/bin/editor
 ENV PGDATA=$PGDATA PATH=$PATH:$PGBIN
 ENV ETCDCTL_API=3
 
-COPY patroni /patroni/
-COPY extras/confd/conf.d/haproxy.toml /etc/confd/conf.d/
-COPY extras/confd/templates/haproxy.tmpl /etc/confd/templates/
+COPY /usr/src/patroni/patroni /patroni/
+COPY /usr/src/patroni/extras/confd/conf.d/haproxy.toml /etc/confd/conf.d/
+COPY /usr/src/patroni/extras/confd/templates/haproxy.tmpl /etc/confd/templates/
 COPY patroni*.py docker/entrypoint.sh /
 COPY postgres?.yml $PGHOME/
 
 WORKDIR $PGHOME
 
-RUN sed -i 's/env python/&3/' /patroni*.py \
+RUN rm -rf /usr/src/patroni \
+    && sed -i 's/env python/&3/' /patroni*.py \
     # "fix" patroni configs
     && sed -i 's/^  listen: 127.0.0.1/  listen: 0.0.0.0/' postgres?.yml \
     && sed -i "s|^\(  data_dir: \).*|\1$PGDATA|" postgres?.yml \
