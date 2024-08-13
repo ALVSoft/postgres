@@ -13,7 +13,7 @@ ARG PGHOME
 ARG PGDATA
 ARG LC_ALL
 ARG LANG
-ARG ETCD_VER=v3.5.16
+ARG ETCD_VER=v3.5.15
 ARG PATRONI_VER=v3.3.2
 
 RUN set -ex \
@@ -49,7 +49,7 @@ RUN set -ex \
 \
     # Download etcd
     && curl -sL "https://github.com/etcd-io/etcd/releases/download/${ETCD_VER}/etcd-${ETCD_VER}-linux-$(dpkg --print-architecture).tar.gz" \
-        | tar xz -C /usr/local/bin --strip=1 --wildcards --no-anchored etcd etcdctl \
+        | tar xz -C /usr/local/bin --strip-components=1 --wildcards --no-anchored etcd etcdctl \
 \
     # Install PostGis
     && apt-cache --important depends postgis \
