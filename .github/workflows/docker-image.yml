@@ -40,11 +40,10 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           build-args: |
-            PG_MAJOR_VERSION=16
-            DEBIAN_FRONTEND=noninteractive
-            PARADEDB_TELEMETRY=false
-            LIBICU_VERSION=72
-            PGML_LSB_RELEASE_CS=jammy
+            PG_MAJOR=16
+            # PARADEDB_TELEMETRY=false
+            # LIBICU_VERSION=72
+            # PGML_LSB_RELEASE_CS=jammy
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
