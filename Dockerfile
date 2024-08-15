@@ -23,8 +23,7 @@ RUN set -ex \
     # postgres:10 is based on debian, which has the patroni package. We will install all required dependencies
     && apt-cache --important depends patroni \
         | sed -n -e 's/.*Depends: \([^<].*[^>].\+\)$/\1/p' \
-        | grep -Ev '^python3-(sphinx|etcd|consul|kazoo|kubernetes)' \
-        | xargs apt-get install -y vim curl less jq locales haproxy sudo python3-pip busybox net-tools iputils-ping dumb-init --fix-missing \
+        | xargs apt-get install -y --fix-missing vim curl less jq locales haproxy sudo python3-pip busybox net-tools iputils-ping dumb-init \
 \
     # Cleanup all locales but en_US.UTF-8
     && find /usr/share/i18n/charmaps/ -type f ! -name UTF-8.gz -delete \

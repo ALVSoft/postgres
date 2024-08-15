@@ -41,6 +41,7 @@ jobs:
         with:
           build-args: |
             PG_MAJOR=16
+            COMPRESS=true
             # PARADEDB_TELEMETRY=false
             # LIBICU_VERSION=72
             # PGML_LSB_RELEASE_CS=jammy
