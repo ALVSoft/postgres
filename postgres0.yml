@@ -22,7 +22,7 @@ restapi:
 #  database: citus
 #  group: 0  # coordinator
 
-etcd:
+etcd3:
   #Provide host to do the initial discovery of the cluster topology:
   host: 127.0.0.1:2379
   #Or use "hosts" to provide multiple endpoints
