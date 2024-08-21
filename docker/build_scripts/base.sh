@@ -61,7 +61,7 @@ else
     curl -sL "https://github.com/pghydro/pghydro/archive/refs/tags/$PGHYDRO.tar.gz" | tar xz -C /tmp
     git clone https://github.com/pjungwir/aggs_for_vecs.git /tmp/aggs_for_vecs
     git clone -b "$PG_JSONSCHEMA" https://github.com/supabase/pg_jsonschema.git /tmp/pg_jsonschema
-    curl -sL "https://github.com/fboulnois/pg_uuidv7/releases/download/$PG_UUIDV7/pg_uuidv7.tar.gz" | tar xz -C /tmp --directory=pg_uuidv7
+    curl -sL "https://github.com/fboulnois/pg_uuidv7/releases/download/$PG_UUIDV7/pg_uuidv7.tar.gz" | tar xz -C /tmp --one-top-level=pg_uuidv7
     curl -sL "https://github.com/fboulnois/pg_uuidv7/releases/download/$PG_UUIDV7/SHA256SUMS" --output /tmp/pg_uuidv7/SHA256SUMS | sha256sum -c
 
     for p in python3-keyring python3-docutils ieee-data; do
@@ -366,5 +366,6 @@ rm -rf /var/lib/apt/lists/* \
         /usr/lib/postgresql/*/bin/droplang \
         /usr/lib/postgresql/*/bin/dropuser \
         /usr/lib/postgresql/*/bin/pg_standby \
-        /usr/lib/postgresql/*/bin/pltcl_*
+        /usr/lib/postgresql/*/bin/pltcl_* \
+        /tmp/*
 find /var/log -type f -exec truncate --size 0 {} \;
