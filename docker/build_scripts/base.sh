@@ -10,8 +10,6 @@ export MAKEFLAGS
 ARCH="$(dpkg --print-architecture)"
 CODENAME="$(sed </etc/os-release -ne 's/^VERSION_CODENAME=//p')"
 
-chown -R postgres:postgres "$HOME"
-
 set -ex
 sed -i 's/^#\s*\(deb.*universe\)$/\1/g' /etc/apt/sources.list
 
@@ -40,7 +38,10 @@ else
     rustup --version && \
     rustc --version && \
     cargo --version
-    cargo install --locked cargo-pgrx
+    (
+        . "$HOME/.cargo/env"
+        cargo install --locked cargo-pgrx
+    )
     add-apt-repository -y universe
     add-apt-repository -y ppa:groonga/ppa
     curl -sL https://packages.groonga.org/ubuntu/groonga-apt-source-latest-$CODENAME.deb -o /tmp/groonga-apt-source-latest-$CODENAME.deb
@@ -218,6 +219,7 @@ for version in $DEB_PG_SUPPORTED_VERSIONS; do
         # use subshell to avoid having to cd back (SC2103)
         (
             cd /tmp/pg_jsonschema
+            . "$HOME/.cargo/env"
             cargo pgrx init --pg$version $PG_CONFIG
             cargo pgrx install
         )

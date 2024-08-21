@@ -54,6 +54,8 @@ ARG DEB_PG_SUPPORTED_VERSIONS="$PGOLDVERSIONS $PGVERSION"
 ENV HOME=/home/postgres \
     PATH=${HOME}.cargo/bin:$PATH
 
+# RUN chown -R postgres:postgres "$HOME"
+
 # Install PostgreSQL, extensions and contribs
 ENV POSTGIS_VERSION=3.4 \
     BG_MON_COMMIT=ef60961eff92672b1e21f5260dc1211367da6f1f \
