@@ -62,7 +62,11 @@ else
     git clone https://github.com/pjungwir/aggs_for_vecs.git /tmp/aggs_for_vecs
     git clone -b "$PG_JSONSCHEMA" https://github.com/supabase/pg_jsonschema.git /tmp/pg_jsonschema
     curl -sL "https://github.com/fboulnois/pg_uuidv7/releases/download/$PG_UUIDV7/pg_uuidv7.tar.gz" | tar xz -C /tmp --one-top-level=pg_uuidv7
-    curl -sL "https://github.com/fboulnois/pg_uuidv7/releases/download/$PG_UUIDV7/SHA256SUMS" --output /tmp/pg_uuidv7/SHA256SUMS | sha256sum -c
+    curl -sL "https://github.com/fboulnois/pg_uuidv7/releases/download/$PG_UUIDV7/SHA256SUMS" --output /tmp/pg_uuidv7/SHA256SUMS
+    (
+        cd /tmp/pg_uuidv7
+        sha256sum --ignore-missing --check --quiet SHA256SUMS
+    )
 
     for p in python3-keyring python3-docutils ieee-data; do
         version=$(apt-cache show $p | sed -n 's/^Version: //p' | sort -rV | head -n 1)
