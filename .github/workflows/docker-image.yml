@@ -39,7 +39,7 @@ jobs:
       - name: Build and push Docker images (PostgreSQL 16)
         uses: docker/build-push-action@v6
         with:
-          context: docker
+          context: ./docker
           build-args: |
             PGVERSION=16
             PGOLDVERSIONS=
