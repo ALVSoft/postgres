@@ -1,0 +1,19 @@
+echo "
+ ____        _ _
+/ ___| _ __ (_) | ___
+\___ \| '_ \| | |/ _ \\
+ ___) | |_) | | | (_) |
+|____/| .__/|_|_|\___/
+      |_|
+
+This container is managed by runit, when stopping/starting services use sv
+
+Examples:
+
+sv stop cron
+sv restart patroni
+
+Current status: (sv status /etc/service/*)
+"
+
+[ -d /etc/service ] && sv status /etc/service/*
