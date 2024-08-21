@@ -31,7 +31,8 @@ else
                     libc-ares-dev
                     pandoc
                     pkg-config
-                    software-properties-common)
+                    software-properties-common
+                    golang)
     apt-get install -y "${BUILD_PACKAGES[@]}"
 
     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path --profile minimal --default-toolchain stable && \
@@ -95,8 +96,7 @@ apt-get install -y \
     brotli \
     libbrotli1 \
     python3.10 \
-    python3-psycopg2 \
-    golang
+    python3-psycopg2
 
 # forbid creation of a main cluster when package is installed
 sed -ri 's/#(create_main_cluster) .*$/\1 = false/' /etc/postgresql-common/createcluster.conf
@@ -203,8 +203,6 @@ for version in $DEB_PG_SUPPORTED_VERSIONS; do
         make -C "/tmp/pgmq/pgmq-extension" PG_CONFIG=$PG_CONFIG
         make -C "/tmp/pgmq/pgmq-extension" install PG_CONFIG=$PG_CONFIG
 
-        go install github.com/xataio/pgroll@$PGROLL PG_CONFIG=$PG_CONFIG
-
         make -C "/tmp/temporal_tables" PG_CONFIG=$PG_CONFIG
         make -C "/tmp/temporal_tables" install PG_CONFIG=$PG_CONFIG
 
@@ -236,6 +234,7 @@ done
 apt-get install -y skytools3-ticker pgbouncer
 if [ "$DEMO" != "true" ]; then
     apt-get install -y pgcat pgagent pgbackrest
+    go install github.com/xataio/pgroll@$PGROLL
 fi
 
 sed -i "s/ main.*$/ main/g" /etc/apt/sources.list.d/pgdg.list
