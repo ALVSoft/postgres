@@ -233,7 +233,7 @@ for version in $DEB_PG_SUPPORTED_VERSIONS; do
             cd /tmp/pg_uuidv7
             sha256sum --ignore-missing --check --quiet SHA256SUMS
             cp "$version/pg_uuidv7.so" "/usr/lib/postgresql/$version/lib"
-            cp "pg_uuidv7--$PG_UUIDV7_RELEASE.sql" "pg_uuidv7.control /usr/share/postgresql/$version/extension"
+            cp "pg_uuidv7--$PG_UUIDV7_RELEASE.sql" "pg_uuidv7.control" "/usr/share/postgresql/$version/extension"
         )
 
         # use subshell to avoid having to cd back (SC2103)
