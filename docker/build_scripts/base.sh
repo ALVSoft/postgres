@@ -215,7 +215,7 @@ for version in $DEB_PG_SUPPORTED_VERSIONS; do
         apt-get install -y /tmp/pg_search_${version}.deb
 
         mkdir -p /usr/share/postgresql/$version/extension
-        find /tmp/pghydro-${PGHYDRO} -type f \( -name '*.sql' -or -name '*.control' \) -print0 | xargs -0 cp /usr/share/postgresql/$version/extension
+        find /tmp/pghydro-${PGHYDRO} -type f \( -name '*.sql' -or -name '*.control' \) -print0 | xargs -0 cp -t /usr/share/postgresql/$version/extension
 
         make -C "/tmp/aggs_for_vecs" PG_CONFIG="$PG_CONFIG"
         make -C "/tmp/aggs_for_vecs" install PG_CONFIG="$PG_CONFIG"
