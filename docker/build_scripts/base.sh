@@ -35,13 +35,12 @@ else
                     golang)
     apt-get install -y "${BUILD_PACKAGES[@]}"
 
-    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path --profile minimal --default-toolchain stable && \
-    rustup --version && \
-    rustc --version && \
-    cargo --version
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path --profile minimal --default-toolchain stable
+    # use subshell to avoid having to cd back (SC2103)
     (
         . "$HOME/.cargo/env"
-        cargo install --locked cargo-pgrx
+        cargo install -j $(nproc) --locked cargo-pgrx --version 0.11.3
+        rustup component add llvm-tools-preview
     )
     add-apt-repository -y universe
     add-apt-repository -y ppa:groonga/ppa
@@ -59,15 +58,13 @@ else
     curl -sL "https://github.com/zalando-pg/pg_mon/archive/$PG_MON_COMMIT.tar.gz" | tar xz -C /tmp
     git clone -b "$PGMQ" https://github.com/tembo-io/pgmq.git /tmp/pgmq
     git clone -b "$TEMPORAL_TABLES" https://github.com/arkhipov/temporal_tables.git /tmp/temporal_tables
+    git clone https://github.com/paradedb/pg_analytics.git /tmp/pg_analytics
     curl -sL "https://github.com/pghydro/pghydro/archive/refs/tags/$PGHYDRO.tar.gz" | tar xz -C /tmp
     git clone https://github.com/pjungwir/aggs_for_vecs.git /tmp/aggs_for_vecs
     git clone -b "$PG_JSONSCHEMA" https://github.com/supabase/pg_jsonschema.git /tmp/pg_jsonschema
     curl -sL "https://github.com/fboulnois/pg_uuidv7/releases/download/$PG_UUIDV7/pg_uuidv7.tar.gz" | tar xz -C /tmp --one-top-level=pg_uuidv7
     curl -sL "https://github.com/fboulnois/pg_uuidv7/releases/download/$PG_UUIDV7/SHA256SUMS" --output /tmp/pg_uuidv7/SHA256SUMS
-    (
-        cd /tmp/pg_uuidv7
-        sha256sum --ignore-missing --check --quiet SHA256SUMS
-    )
+    git clone -b "$PG_GRAPHQL" https://github.com/supabase/pg_graphql.git /tmp/pg_graphql
 
     for p in python3-keyring python3-docutils ieee-data; do
         version=$(apt-cache show $p | sed -n 's/^Version: //p' | sort -rV | head -n 1)
@@ -200,41 +197,59 @@ for version in $DEB_PG_SUPPORTED_VERSIONS; do
     done
 
     if [ "$DEMO" != "true" ]; then
-        make -C "/tmp/pgmq/pgmq-extension" PG_CONFIG=$PG_CONFIG
-        make -C "/tmp/pgmq/pgmq-extension" install PG_CONFIG=$PG_CONFIG
+        make -C "/tmp/pgmq/pgmq-extension" PG_CONFIG="$PG_CONFIG"
+        make -C "/tmp/pgmq/pgmq-extension" install PG_CONFIG="$PG_CONFIG"
 
-        make -C "/tmp/temporal_tables" PG_CONFIG=$PG_CONFIG
-        make -C "/tmp/temporal_tables" install PG_CONFIG=$PG_CONFIG
+        make -C "/tmp/temporal_tables" PG_CONFIG="$PG_CONFIG"
+        make -C "/tmp/temporal_tables" install PG_CONFIG="$PG_CONFIG"
 
-        curl -sL "https://github.com/paradedb/paradedb/releases/download/v$PG_ANALYTICS/postgresql-$version-pg-analytics_$PG_ANALYTICS-1PARADEDB-$CODENAME_$ARCH.deb" -o /tmp/pg_analytics_v${PG_ANALYTICS}.deb
-        apt-get install -y /tmp/pg_analytics_v${PG_ANALYTICS}.deb
+        # use subshell to avoid having to cd back (SC2103)
+        (
+            cd /tmp/pg_analytics
+            . "$HOME/.cargo/env"
+            cargo pgrx init "--pg$version=$PG_CONFIG"
+            cargo pgrx install --pg-config="$PG_CONFIG" --release
+        )
 
-        curl -sL "https://github.com/paradedb/paradedb/releases/download/v$PG_SEARCH/postgresql-$version-pg-search_$PG_SEARCH-1PARADEDB-$CODENAME_$ARCH.deb" -o /tmp/pg_searchv${PG_SEARCH}.deb
-        apt-get install -y /tmp/pg_searchv${PG_SEARCH}.deb
+        curl -sL "https://github.com/paradedb/paradedb/releases/download/$PG_SEARCH/postgresql-$version-pg-search_$PG_SEARCH_RELEASE-1PARADEDB-${CODENAME}_$ARCH.deb" --output /tmp/pg_search_${version}.deb
+        apt-get install -y /tmp/pg_search_${version}.deb
 
         mkdir -p /usr/share/postgresql/$version/extension
         find /tmp/pghydro-${PGHYDRO} -type f \( -name '*.sql' -or -name '*.control' \) -print0 | xargs -0 cp /usr/share/postgresql/$version/extension
 
-        make -C "/tmp/aggs_for_vecs" PG_CONFIG=$PG_CONFIG
-        make -C "/tmp/aggs_for_vecs" install PG_CONFIG=$PG_CONFIG
+        make -C "/tmp/aggs_for_vecs" PG_CONFIG="$PG_CONFIG"
+        make -C "/tmp/aggs_for_vecs" install PG_CONFIG="$PG_CONFIG"
 
         # use subshell to avoid having to cd back (SC2103)
         (
             cd /tmp/pg_jsonschema
             . "$HOME/.cargo/env"
-            cargo pgrx init --pg$version $PG_CONFIG
-            cargo pgrx install
+            cargo pgrx init "--pg$version=$PG_CONFIG"
+            cargo pgrx install --pg-config="$PG_CONFIG" --release
         )
 
-        cp "/tmp/pg_uuidv7/$version/pg_uuidv7.so" /usr/lib/postgresql/$version/lib
-        cp /tmp/pg_uuidv7/pg_uuidv7--$PG_UUIDV7_RELEASE.sql /tmp/pg_uuidv7/pg_uuidv7.control /usr/share/postgresql/$version/extension
+        # use subshell to avoid having to cd back (SC2103)
+        (
+            cd /tmp/pg_uuidv7
+            sha256sum --ignore-missing --check --quiet SHA256SUMS
+            cp "$version/pg_uuidv7.so" "/usr/lib/postgresql/$version/lib"
+            cp "pg_uuidv7--$PG_UUIDV7_RELEASE.sql" "pg_uuidv7.control /usr/share/postgresql/$version/extension"
+        )
+
+        # use subshell to avoid having to cd back (SC2103)
+        (
+            cd /tmp/pg_graphql
+            . "$HOME/.cargo/env"
+            cargo pgrx init "--pg$version=$PG_CONFIG"
+            cargo pgrx install --pg-config="$PG_CONFIG" --release
+        )
     fi
 done
 
 apt-get install -y skytools3-ticker pgbouncer
 if [ "$DEMO" != "true" ]; then
     apt-get install -y pgcat pgagent pgbackrest
-    go install github.com/xataio/pgroll@$PGROLL
+    go install github.com/xataio/pgroll@"$PGROLL"
 fi
 
 sed -i "s/ main.*$/ main/g" /etc/apt/sources.list.d/pgdg.list
