@@ -129,7 +129,7 @@ for version in $DEB_PG_SUPPORTED_VERSIONS; do
                 "postgresql-${version}-pllua"
                 "postgresql-${version}-pgvector"
                 "postgresql-${version}-pgdg-pgroonga"
-                "postgresql-pgml-${version}")
+                "postgresml-${version}")
 
         if [ "$WITH_PERL" = "true" ]; then
             EXTRAS+=("postgresql-plperl-${version}")
@@ -248,8 +248,20 @@ done
 
 apt-get install -y skytools3-ticker pgbouncer
 if [ "$DEMO" != "true" ]; then
-    apt-get install -y pgcat pgagent pgbackrest
+    apt-get install -y pgagent pgbackrest
+
+    # use subshell to avoid having to cd back (SC2103)
+    (
+        git clone https://github.com/postgresml/pgcat.git /tmp/pgcat
+        cd /tmp/pgcat
+        . "$HOME/.cargo/env"
+        cargo build --release
+        cp target/release/pgcat /usr/bin/pgcat
+    )
+
     go install github.com/xataio/pgroll@"$PGROLL"
+
+    curl -sL "https://github.com/PostgREST/postgrest/releases/download/$POSTGREST/postgrest-$POSTGREST-ubuntu-aarch64.tar.xz" | tar Jxf -C /usr/bin
 fi
 
 sed -i "s/ main.*$/ main/g" /etc/apt/sources.list.d/pgdg.list

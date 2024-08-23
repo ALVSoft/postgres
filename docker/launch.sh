@@ -1,12 +1,12 @@
 #!/bin/sh
 
 if [ -f /a.tar.xz ]; then
-    echo "decompressing spilo image..."
+    echo "decompressing image..."
     if tar xpJf /a.tar.xz -C / > /dev/null 2>&1; then
         rm /a.tar.xz
         ln -snf dash /bin/sh
     else
-        echo "failed to decompress spilo image"
+        echo "failed to decompress image"
         exit 1
     fi
 fi
@@ -44,8 +44,8 @@ chmod 01777 "$RW_DIR/tmp"
 chmod 0700 "$PGDATA"
 
 if [ "$DEMO" = "true" ]; then
-    python3 /scripts/configure_spilo.py patroni pgqd certificate pam-oauth2
-elif python3 /scripts/configure_spilo.py all; then
+    python3 /scripts/configure.py patroni pgqd certificate pam-oauth2
+elif python3 /scripts/configure.py all; then
     CMD="/scripts/patroni_wait.sh -t 3600 -- envdir $WALE_ENV_DIR /scripts/postgres_backup.sh $PGDATA"
     if [ "$(id -u)" = "0" ]; then
         su postgres -c "PATH=$PATH $CMD" &
@@ -66,3 +66,9 @@ trap sv_stop TERM QUIT INT
 /usr/bin/runsvdir -P /etc/service &
 
 wait
+
+# /path/to/pgagent hostaddr=127.0.0.1 dbname=postgres user=postgres
+# shared_preload_libraries = 'pg-analytics,pg-search,pgml,pg_stat_statements'
+# pgml.venv = '/var/lib/postgresml-python/pgml-venv'
+# pgcat /etc/pgcat/config.toml
+# postgrest /etc/postgrest/postgrest.conf

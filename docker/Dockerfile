@@ -1,4 +1,6 @@
-ARG BASE_IMAGE=ubuntu:22.04
+ARG BASE_IMAGE=nvidia/cuda:12.6.0-base-ubuntu22.04
+#nvidia/cuda:12.6.0-devel-ubuntu22.04
+#ubuntu:22.04
 ARG PGVERSION=16
 ARG TIMESCALEDB="2.11.2 2.14.2 2.16.1"
 ARG DEMO=false
@@ -76,6 +78,7 @@ ENV POSTGIS_VERSION=3.4 \
     PG_JSONSCHEMA=v0.3.1 \
     PG_UUIDV7=v1.5.0 \
     PG_UUIDV7_RELEASE=1.5 \
+    POSTGREST=v12.2.3 \
     PG_GRAPHQL=v1.5.7
 
 WORKDIR /builddeps
@@ -95,6 +98,9 @@ WORKDIR /
 RUN bash /builddeps/patroni_wale.sh
 
 RUN if [ "$COMPRESS" = "true" ]; then bash /builddeps/compress_build.sh; fi
+
+COPY pgcat.toml /etc/pgcat/config.toml
+COPY postgrest.conf /etc/postgrest/postgrest.conf
 
 
 FROM builder

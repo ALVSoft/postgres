@@ -22,7 +22,7 @@ import yaml
 import pystache
 import requests
 
-from spilo_commons import RW_DIR, PATRONI_CONFIG_FILE, append_extensions,\
+from commons import RW_DIR, PATRONI_CONFIG_FILE, append_extensions,\
         get_binary_version, get_bin_dir, is_valid_pg_version, write_file, write_patroni_config
 
 
@@ -32,7 +32,7 @@ PROVIDER_OPENSTACK = "openstack"
 PROVIDER_LOCAL = "local"
 PROVIDER_UNSUPPORTED = "unsupported"
 USE_KUBERNETES = os.environ.get('KUBERNETES_SERVICE_HOST') is not None
-KUBERNETES_DEFAULT_LABELS = '{"application": "spilo"}'
+KUBERNETES_DEFAULT_LABELS = '{"application": "postgresql"}'
 PATRONI_DCS = ('kubernetes', 'zookeeper', 'exhibitor', 'consul', 'etcd3', 'etcd')
 AUTO_ENABLE_WALG_RESTORE = ('WAL_S3_BUCKET', 'WALE_S3_PREFIX', 'WALG_S3_PREFIX', 'WALG_AZ_PREFIX', 'WALG_SSH_PREFIX')
 WALG_SSH_NAMES = ['WALG_SSH_PREFIX', 'SSH_PRIVATE_KEY_PATH', 'SSH_USERNAME', 'SSH_PORT']
@@ -41,7 +41,7 @@ WALG_SSH_NAMES = ['WALG_SSH_PREFIX', 'SSH_PRIVATE_KEY_PATH', 'SSH_USERNAME', 'SS
 def parse_args():
     sections = ['all', 'patroni', 'pgqd', 'certificate', 'wal-e', 'crontab',
                 'pam-oauth2', 'pgbouncer', 'bootstrap', 'standby-cluster', 'log']
-    argp = argparse.ArgumentParser(description='Configures Spilo',
+    argp = argparse.ArgumentParser(description='Configures extensions',
                                    epilog="Choose from the following sections:\n\t{}".format('\n\t'.join(sections)),
                                    formatter_class=argparse.RawDescriptionHelpFormatter)
 
@@ -110,7 +110,7 @@ def write_certificates(environment, overwrite):
             '-new',
             '-x509',
             '-subj',
-            '/CN=spilo.example.org',
+            '/CN=alvsoft.example.org',
             '-keyout',
             environment['SSL_PRIVATE_KEY_FILE'],
             '-out',
@@ -567,7 +567,7 @@ def get_placeholders(provider):
     placeholders.setdefault('PAM_OAUTH2', '')
     placeholders.setdefault('CALLBACK_SCRIPT', '')
     placeholders.setdefault('DCS_ENABLE_KUBERNETES_API', '')
-    placeholders.setdefault('KUBERNETES_ROLE_LABEL', 'spilo-role')
+    placeholders.setdefault('KUBERNETES_ROLE_LABEL', 'postgresql-role')
     placeholders.setdefault('KUBERNETES_SCOPE_LABEL', 'version')
     placeholders.setdefault('KUBERNETES_LABELS', KUBERNETES_DEFAULT_LABELS)
     placeholders.setdefault('KUBERNETES_USE_CONFIGMAPS', '')
@@ -758,7 +758,7 @@ def write_log_environment(placeholders):
 
     log_env['LOG_AWS_REGION'] = aws_region
 
-    log_s3_key = 'spilo/{LOG_BUCKET_SCOPE_PREFIX}{SCOPE}{LOG_BUCKET_SCOPE_SUFFIX}/log/'.format(**log_env)
+    log_s3_key = 'postgresql/{LOG_BUCKET_SCOPE_PREFIX}{SCOPE}{LOG_BUCKET_SCOPE_SUFFIX}/log/'.format(**log_env)
     if os.getenv('LOG_GROUP_BY_DATE'):
         log_s3_key += '{DATE}/'
     log_s3_key += placeholders['instance_data']['id']
@@ -896,7 +896,7 @@ def write_wale_environment(placeholders, prefix, overwrite):
     prefix_env_name = write_envdir_names[0]
     store_type = prefix_env_name[5:].split('_')[0]
     if not wale.get(prefix_env_name):  # WALE_*_PREFIX is not defined in the environment
-        bucket_path = '/spilo/{WAL_BUCKET_SCOPE_PREFIX}{SCOPE}{WAL_BUCKET_SCOPE_SUFFIX}/wal/{PGVERSION}'.format(**wale)
+        bucket_path = '/postgresql/{WAL_BUCKET_SCOPE_PREFIX}{SCOPE}{WAL_BUCKET_SCOPE_SUFFIX}/wal/{PGVERSION}'.format(**wale)
         prefix_template = '{0}://{{WAL_{1}_BUCKET}}{2}'.format(store_type.lower(), store_type, bucket_path)
         wale[prefix_env_name] = prefix_template.format(**wale)
     # Set WALG_*_PREFIX for future compatibility

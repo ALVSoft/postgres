@@ -417,7 +417,7 @@ RUN set -ex \
     # && echo "deb [trusted=yes] https://apt.postgresml.org bookworm main" | tee -a /etc/apt/sources.list \
     # && apt-get update -y \
     && apt-get install -y --no-install-recommends \
-        postgresql-16-pgmp \
+        postgresql-16-pgml \
         pgcat \
     # patroni
     && echo 'APT::Install-Recommends "0";\nAPT::Install-Suggests "0";' > /etc/apt/apt.conf.d/01norecommend \
