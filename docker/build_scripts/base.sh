@@ -129,7 +129,7 @@ for version in $DEB_PG_SUPPORTED_VERSIONS; do
                 "postgresql-${version}-pllua"
                 "postgresql-${version}-pgvector"
                 "postgresql-${version}-pgdg-pgroonga"
-                "postgresml-${version}")
+                "postgresql-pgml-${version}")
 
         if [ "$WITH_PERL" = "true" ]; then
             EXTRAS+=("postgresql-plperl-${version}")
@@ -248,7 +248,7 @@ done
 
 apt-get install -y skytools3-ticker pgbouncer
 if [ "$DEMO" != "true" ]; then
-    apt-get install -y pgagent pgbackrest
+    apt-get install -y postgresml-python pgagent pgbackrest
 
     # use subshell to avoid having to cd back (SC2103)
     (
