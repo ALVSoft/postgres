@@ -23,6 +23,8 @@ jobs:
         swap-storage: true
 
   build:
+    if: ${{ always() }}
+    needs: free-disk-space
     runs-on: ubuntu-latest
     steps:
 

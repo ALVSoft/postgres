@@ -7,7 +7,7 @@ ARG DEMO=false
 ARG COMPRESS=false
 ARG ADDITIONAL_LOCALES=
 
-FROM ubuntu:18.04 as ubuntu-18
+FROM ubuntu:18.04 AS ubuntu-18
 
 ARG ADDITIONAL_LOCALES
 
@@ -16,7 +16,7 @@ COPY build_scripts/locales.sh /builddeps/
 RUN bash /builddeps/locales.sh
 
 
-FROM $BASE_IMAGE as dependencies-builder
+FROM $BASE_IMAGE AS dependencies-builder
 
 ARG DEMO
 
@@ -29,7 +29,7 @@ COPY dependencies/debs /builddeps/
 RUN bash /builddeps/dependencies.sh
 
 
-FROM $BASE_IMAGE as builder
+FROM $BASE_IMAGE AS builder
 
 ARG DEMO
 ARG ADDITIONAL_LOCALES
