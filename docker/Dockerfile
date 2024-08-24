@@ -52,10 +52,11 @@ ARG COMPRESS
 ARG PGOLDVERSIONS="12 13 14 15"
 ARG WITH_PERL=false
 ARG DEB_PG_SUPPORTED_VERSIONS="$PGOLDVERSIONS $PGVERSION"
+ARG GO_VERSION=1.23.0
 ARG CARGO_VERSION=0.11.3
 
 ENV HOME=/home/postgres \
-    PATH=${HOME}.cargo/bin:$PATH
+    PATH=${PATH}:/usr/local/go/bin:${HOME}.cargo/bin
 
 # RUN chown -R postgres:postgres "$HOME"
 
