@@ -265,7 +265,7 @@ if [ "$DEMO" != "true" ]; then
 
     go install github.com/xataio/pgroll@"$PGROLL"
 
-    curl -sL "https://github.com/PostgREST/postgrest/releases/download/$POSTGREST/postgrest-$POSTGREST-ubuntu-aarch64.tar.xz" | tar -Jxz -C /usr/bin
+    curl -sL "https://github.com/PostgREST/postgrest/releases/download/$POSTGREST/postgrest-$POSTGREST-ubuntu-aarch64.tar.xz" | tar -Jx -C /usr/bin
 fi
 
 sed -i "s/ main.*$/ main/g" /etc/apt/sources.list.d/pgdg.list
