@@ -34,11 +34,12 @@ else
                     software-properties-common)
     apt-get install -y "${BUILD_PACKAGES[@]}"
 
-    rm -rf /usr/local/go && curl -sL "https://go.dev/dl/go$GO_VERSION.linux-$ARCH.tar.gz" | tar xzf -C /usr/local
+    rm -rf /usr/local/go && curl -sL "https://go.dev/dl/go$GO_VERSION.linux-$ARCH.tar.gz" | tar -xz -C /usr/local
     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path --profile minimal --default-toolchain stable
     (
+        # shellcheck disable=SC1091
         . "$HOME/.cargo/env"
-        cargo install -j $(nproc) --locked cargo-pgrx --version 0.11.3
+        cargo install -j "$(nproc)" --locked cargo-pgrx --version "$CARGO_VERSION"
         rustup component add llvm-tools-preview
     )
     add-apt-repository -y universe
@@ -54,14 +55,14 @@ else
 
     # prepare 3rd sources
     git clone -b "$PLPROFILER" https://github.com/bigsql/plprofiler.git /tmp/plprofiler
-    curl -sL "https://github.com/zalando-pg/pg_mon/archive/$PG_MON_COMMIT.tar.gz" | tar xzf -C /tmp
+    curl -sL "https://github.com/zalando-pg/pg_mon/archive/$PG_MON_COMMIT.tar.gz" | tar -xz -C /tmp
     git clone -b "$PGMQ" https://github.com/tembo-io/pgmq.git /tmp/pgmq
     git clone -b "$TEMPORAL_TABLES" https://github.com/arkhipov/temporal_tables.git /tmp/temporal_tables
     git clone https://github.com/paradedb/pg_analytics.git /tmp/pg_analytics
-    curl -sL "https://github.com/pghydro/pghydro/archive/refs/tags/$PGHYDRO.tar.gz" | tar xzf -C /tmp
+    curl -sL "https://github.com/pghydro/pghydro/archive/refs/tags/$PGHYDRO.tar.gz" | tar -xz -C /tmp
     git clone https://github.com/pjungwir/aggs_for_vecs.git /tmp/aggs_for_vecs
     git clone -b "$PG_JSONSCHEMA" https://github.com/supabase/pg_jsonschema.git /tmp/pg_jsonschema
-    curl -sL "https://github.com/fboulnois/pg_uuidv7/releases/download/$PG_UUIDV7/pg_uuidv7.tar.gz" | tar xzf -C /tmp --one-top-level=pg_uuidv7
+    curl -sL "https://github.com/fboulnois/pg_uuidv7/releases/download/$PG_UUIDV7/pg_uuidv7.tar.gz" | tar -xz -C /tmp --one-top-level=pg_uuidv7
     curl -sL "https://github.com/fboulnois/pg_uuidv7/releases/download/$PG_UUIDV7/SHA256SUMS" --output /tmp/pg_uuidv7/SHA256SUMS
     git clone -b "$PG_GRAPHQL" https://github.com/supabase/pg_graphql.git /tmp/pg_graphql
 
@@ -78,10 +79,10 @@ if [ "$WITH_PERL" != "true" ]; then
     equivs-build perl
 fi
 
-curl -sL "https://github.com/zalando-pg/bg_mon/archive/$BG_MON_COMMIT.tar.gz" | tar xzf -C /tmp
-curl -sL "https://github.com/zalando-pg/pg_auth_mon/archive/$PG_AUTH_MON_COMMIT.tar.gz" | tar xzf -C /tmp
-curl -sL "https://github.com/cybertec-postgresql/pg_permissions/archive/$PG_PERMISSIONS_COMMIT.tar.gz" | tar xzf -C /tmp
-curl -sL "https://github.com/zubkov-andrei/pg_profile/archive/$PG_PROFILE.tar.gz" | tar xzf -C /tmp
+curl -sL "https://github.com/zalando-pg/bg_mon/archive/$BG_MON_COMMIT.tar.gz" | tar -xz -C /tmp
+curl -sL "https://github.com/zalando-pg/pg_auth_mon/archive/$PG_AUTH_MON_COMMIT.tar.gz" | tar -xz -C /tmp
+curl -sL "https://github.com/cybertec-postgresql/pg_permissions/archive/$PG_PERMISSIONS_COMMIT.tar.gz" | tar -xz -C /tmp
+curl -sL "https://github.com/zubkov-andrei/pg_profile/archive/$PG_PROFILE.tar.gz" | tar -xz -C /tmp
 git clone -b "$SET_USER" https://github.com/pgaudit/set_user.git /tmp/set_user
 git clone https://github.com/timescale/timescaledb.git /tmp/timescaledb
 
@@ -205,16 +206,17 @@ for version in $DEB_PG_SUPPORTED_VERSIONS; do
         # use subshell to avoid having to cd back (SC2103)
         (
             cd /tmp/pg_analytics
+            # shellcheck disable=SC1091
             . "$HOME/.cargo/env"
             cargo pgrx init "--pg$version=$PG_CONFIG"
             cargo pgrx install --pg-config="$PG_CONFIG" --release
         )
 
-        curl -sL "https://github.com/paradedb/paradedb/releases/download/$PG_SEARCH/postgresql-$version-pg-search_$PG_SEARCH_RELEASE-1PARADEDB-${CODENAME}_$ARCH.deb" --output /tmp/pg_search_${version}.deb
-        apt-get install -y /tmp/pg_search_${version}.deb
+        curl -sL "https://github.com/paradedb/paradedb/releases/download/$PG_SEARCH/postgresql-$version-pg-search_$PG_SEARCH_RELEASE-1PARADEDB-${CODENAME}_$ARCH.deb" --output "/tmp/pg_search_${version}.deb"
+        apt-get install -y "/tmp/pg_search_${version}.deb"
 
-        mkdir -p /usr/share/postgresql/$version/extension
-        find /tmp/pghydro-${PGHYDRO} -type f \( -name '*.sql' -or -name '*.control' \) -print0 | xargs -0 cp -t /usr/share/postgresql/$version/extension
+        mkdir -p "/usr/share/postgresql/$version/extension"
+        find "/tmp/pghydro-${PGHYDRO}" -type f \( -name '*.sql' -or -name '*.control' \) -print0 | xargs -0 cp -t "/usr/share/postgresql/$version/extension"
 
         make -C "/tmp/aggs_for_vecs" PG_CONFIG="$PG_CONFIG"
         make -C "/tmp/aggs_for_vecs" install PG_CONFIG="$PG_CONFIG"
@@ -222,6 +224,7 @@ for version in $DEB_PG_SUPPORTED_VERSIONS; do
         # use subshell to avoid having to cd back (SC2103)
         (
             cd /tmp/pg_jsonschema
+            # shellcheck disable=SC1091
             . "$HOME/.cargo/env"
             cargo pgrx init "--pg$version=$PG_CONFIG"
             cargo pgrx install --pg-config="$PG_CONFIG" --release
@@ -238,6 +241,7 @@ for version in $DEB_PG_SUPPORTED_VERSIONS; do
         # use subshell to avoid having to cd back (SC2103)
         (
             cd /tmp/pg_graphql
+            # shellcheck disable=SC1091
             . "$HOME/.cargo/env"
             cargo pgrx init "--pg$version=$PG_CONFIG"
             cargo pgrx install --pg-config="$PG_CONFIG" --release
@@ -253,6 +257,7 @@ if [ "$DEMO" != "true" ]; then
     (
         git clone https://github.com/postgresml/pgcat.git /tmp/pgcat
         cd /tmp/pgcat
+        # shellcheck disable=SC1091
         . "$HOME/.cargo/env"
         cargo build --release
         cp target/release/pgcat /usr/bin/pgcat
@@ -260,7 +265,7 @@ if [ "$DEMO" != "true" ]; then
 
     go install github.com/xataio/pgroll@"$PGROLL"
 
-    curl -sL "https://github.com/PostgREST/postgrest/releases/download/$POSTGREST/postgrest-$POSTGREST-ubuntu-aarch64.tar.xz" | tar Jxzf -C /usr/bin
+    curl -sL "https://github.com/PostgREST/postgrest/releases/download/$POSTGREST/postgrest-$POSTGREST-ubuntu-aarch64.tar.xz" | tar -Jxz -C /usr/bin
 fi
 
 sed -i "s/ main.*$/ main/g" /etc/apt/sources.list.d/pgdg.list
