@@ -55,8 +55,8 @@ ARG DEB_PG_SUPPORTED_VERSIONS="$PGOLDVERSIONS $PGVERSION"
 ARG GO_VERSION=1.23.0
 ARG CARGO_VERSION=0.11.3
 
-ENV HOME=/home/postgres \
-    PATH=${PATH}:/usr/local/go/bin:${HOME}.cargo/bin
+ENV HOME="/home/postgres"
+ENV PATH="${PATH}:/usr/local/go/bin:${HOME}.cargo/bin"
 
 # RUN chown -R postgres:postgres "$HOME"
 

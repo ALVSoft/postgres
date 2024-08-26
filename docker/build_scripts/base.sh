@@ -362,19 +362,21 @@ if [ "$DEMO" != "true" ]; then
                 started=1
             elif [ $started = 1 ]; then
                 for d1 in extension contrib contrib/postgis-$POSTGIS_VERSION; do
-                    cd "$v1/$d1"
-                    d2="$d1"
-                    d1="../../${v1##*/}/$d1"
-                    if [ "${d2%-*}" = "contrib/postgis" ]; then
-                        d1="../$d1"
-                    fi
-                    d2="$v2/$d2"
-                    for f in *.html *.sql *.control *.pl; do
-                        if [ -f "$d2/$f" ] && [ ! -L "$d2/$f" ] && diff "$d2/$f" "$f" > /dev/null; then
-                            echo "creating symlink $d2/$f -> $d1/$f"
-                            rm "$d2/$f" && ln -s "$d1/$f" "$d2/$f"
+                    if [ -d "$v1/$d1" ]; then
+                        cd "$v1/$d1"
+                        d2="$d1"
+                        d1="../../${v1##*/}/$d1"
+                        if [ "${d2%-*}" = "contrib/postgis" ]; then
+                            d1="../$d1"
                         fi
-                    done
+                        d2="$v2/$d2"
+                        for f in *.html *.sql *.control *.pl; do
+                            if [ -f "$d2/$f" ] && [ ! -L "$d2/$f" ] && diff "$d2/$f" "$f" > /dev/null; then
+                                echo "creating symlink $d2/$f -> $d1/$f"
+                                rm "$d2/$f" && ln -s "$d1/$f" "$d2/$f"
+                            fi
+                        done
+                    fi
                 done
             fi
         done
