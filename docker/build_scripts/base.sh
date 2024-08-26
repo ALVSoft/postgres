@@ -38,7 +38,7 @@ else
     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path --profile minimal --default-toolchain stable
     (
         # shellcheck disable=SC1091
-        . "$HOME/.cargo/env"
+        #. "$HOME/.cargo/env"
         cargo install -j "$(nproc)" --locked cargo-pgrx --version "$CARGO_VERSION"
         rustup component add llvm-tools-preview
     )
@@ -224,6 +224,7 @@ for version in $DEB_PG_SUPPORTED_VERSIONS; do
         # use subshell to avoid having to cd back (SC2103)
         (
             cd /tmp/pg_jsonschema
+            mv -f .cargo/config .cargo/config.toml
             # shellcheck disable=SC1091
             . "$HOME/.cargo/env"
             cargo pgrx init "--pg$version=$PG_CONFIG"
@@ -241,6 +242,7 @@ for version in $DEB_PG_SUPPORTED_VERSIONS; do
         # use subshell to avoid having to cd back (SC2103)
         (
             cd /tmp/pg_graphql
+            mv -f .cargo/config .cargo/config.toml
             # shellcheck disable=SC1091
             . "$HOME/.cargo/env"
             cargo pgrx init "--pg$version=$PG_CONFIG"
