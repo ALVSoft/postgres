@@ -81,7 +81,8 @@ ENV POSTGIS_VERSION=3.4 \
     PG_UUIDV7=v1.5.0 \
     PG_UUIDV7_RELEASE=1.5 \
     POSTGREST=v12.2.3 \
-    PG_GRAPHQL=v1.5.7
+    PG_GRAPHQL=v1.5.7 \
+    PGCAT=v1.1.1
 
 WORKDIR /builddeps
 RUN bash base.sh

@@ -65,7 +65,9 @@ else
     git clone -b "$PG_JSONSCHEMA" https://github.com/supabase/pg_jsonschema.git /tmp/pg_jsonschema
     curl -sL "https://github.com/fboulnois/pg_uuidv7/releases/download/$PG_UUIDV7/pg_uuidv7.tar.gz" | tar -xz -C /tmp --one-top-level=pg_uuidv7
     curl -sL "https://github.com/fboulnois/pg_uuidv7/releases/download/$PG_UUIDV7/SHA256SUMS" --output /tmp/pg_uuidv7/SHA256SUMS
+    ( cd /tmp/pg_uuidv7 && sha256sum --ignore-missing --check --quiet SHA256SUMS )
     git clone -b "$PG_GRAPHQL" https://github.com/supabase/pg_graphql.git /tmp/pg_graphql
+    git clone -b "$PGCAT" https://github.com/postgresml/pgcat.git /tmp/pgcat
 
     for p in python3-keyring python3-docutils ieee-data; do
         version=$(apt-cache show $p | sed -n 's/^Version: //p' | sort -rV | head -n 1)
@@ -212,15 +214,9 @@ for version in $DEB_PG_SUPPORTED_VERSIONS; do
         make -C "/tmp/temporal_tables" PG_CONFIG="$PG_CONFIG"
         make -C "/tmp/temporal_tables" install PG_CONFIG="$PG_CONFIG"
 
-        # use subshell to avoid having to cd back (SC2103)
-        (
-            cd /tmp/pg_analytics
-            # shellcheck disable=SC1091
-            . "$HOME/.cargo/env"
-            cargo pgrx install --pg-config="$PG_CONFIG" --release
-            mkdir -p .duckdb/ && chmod -R a+rwX .duckdb/
-            mkdir -p /var/lib/postgresql/.duckdb/ && chmod -R a+rwX /var/lib/postgresql/.duckdb/
-        )
+        cargo -C /tmp/pg_analytics -Z unstable-options pgrx install --pg-config="$PG_CONFIG" --release
+        mkdir -p .duckdb/ && chmod -R a+rwX .duckdb/
+        mkdir -p /var/lib/postgresql/.duckdb/ && chmod -R a+rwX /var/lib/postgresql/.duckdb/
 
         curl -sL "https://github.com/paradedb/paradedb/releases/download/$PG_SEARCH/postgresql-$version-pg-search_$PG_SEARCH_RELEASE-1PARADEDB-${CODENAME}_$ARCH.deb" --output "/tmp/pg_search_${version}.deb"
         apt-get install -y "/tmp/pg_search_${version}.deb"
@@ -231,36 +227,20 @@ for version in $DEB_PG_SUPPORTED_VERSIONS; do
         make -C "/tmp/aggs_for_vecs" PG_CONFIG="$PG_CONFIG"
         make -C "/tmp/aggs_for_vecs" install PG_CONFIG="$PG_CONFIG"
 
-        # use subshell to avoid having to cd back (SC2103)
-        (
-            cd /tmp/pg_jsonschema
-            mv -f .cargo/config .cargo/config.toml
-            # shellcheck disable=SC1091
-            . "$HOME/.cargo/env"
-            cargo upgrade -package "pgrx@$PGRX_VERSION"
-            cargo generate-lockfile
-            #cargo update --quiet --workspace pgrx* --precise "$PGRX_VERSION"
-            cargo pgrx install --pg-config="$PG_CONFIG" --release
-        )
+        cd 
+        mv -f .cargo/config .cargo/config.toml
+        cargo -C /tmp/pg_jsonschema -Z unstable-options upgrade -package "pgrx@$PGRX_VERSION"
+        cargo -C /tmp/pg_jsonschema -Z unstable-options generate-lockfile
+        #cargo -C /tmp/pg_jsonschema -Z unstable-options update --quiet --workspace pgrx* --precise "$PGRX_VERSION"
+        cargo -C /tmp/pg_jsonschema -Z unstable-options pgrx install --pg-config="$PG_CONFIG" --release
 
-        # use subshell to avoid having to cd back (SC2103)
-        (
-            cd /tmp/pg_uuidv7
-            sha256sum --ignore-missing --check --quiet SHA256SUMS
-            cp "$version/pg_uuidv7.so" "/usr/lib/postgresql/$version/lib"
-            cp "pg_uuidv7--$PG_UUIDV7_RELEASE.sql" "pg_uuidv7.control" "/usr/share/postgresql/$version/extension"
-        )
+        cp "/tmp/pg_uuidv7/$version/pg_uuidv7.so" "/usr/lib/postgresql/$version/lib"
+        cp "/tmp/pg_uuidv7/pg_uuidv7--$PG_UUIDV7_RELEASE.sql" "/tmp/pg_uuidv7/pg_uuidv7.control" "/usr/share/postgresql/$version/extension"
 
-        # use subshell to avoid having to cd back (SC2103)
-        (
-            cd /tmp/pg_graphql
-            mv -f .cargo/config .cargo/config.toml
-            # shellcheck disable=SC1091
-            . "$HOME/.cargo/env"
-            cargo upgrade -package "pgrx@$PGRX_VERSION"
-            cargo generate-lockfile
-            cargo pgrx install --pg-config="$PG_CONFIG" --release
-        )
+        mv -f /tmp/pg_graphql/.cargo/config /tmp/pg_graphql/.cargo/config.toml
+        cargo -C /tmp/pg_graphql -Z unstable-options upgrade -package "pgrx@$PGRX_VERSION"
+        cargo -C /tmp/pg_graphql -Z unstable-options generate-lockfile
+        cargo -C /tmp/pg_graphql -Z unstable-options pgrx install --pg-config="$PG_CONFIG" --release
     fi
 done
 
@@ -268,15 +248,8 @@ apt-get install -y skytools3-ticker pgbouncer
 if [ "$DEMO" != "true" ]; then
     apt-get install -y postgresml-python pgagent pgbackrest
 
-    # use subshell to avoid having to cd back (SC2103)
-    (
-        git clone https://github.com/postgresml/pgcat.git /tmp/pgcat
-        cd /tmp/pgcat
-        # shellcheck disable=SC1091
-        . "$HOME/.cargo/env"
-        cargo build --release
-        cp target/release/pgcat /usr/bin/pgcat
-    )
+    cargo -C /tmp/pgcat -Z unstable-options build --release
+    cp target/release/pgcat /usr/bin/pgcat
 
     go install github.com/xataio/pgroll@"$PGROLL"
 
