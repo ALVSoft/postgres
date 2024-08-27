@@ -53,10 +53,10 @@ ARG PGOLDVERSIONS="12 13 14 15"
 ARG WITH_PERL=false
 ARG DEB_PG_SUPPORTED_VERSIONS="$PGOLDVERSIONS $PGVERSION"
 ARG GO_VERSION=1.23.0
-ARG CARGO_VERSION=0.12.1
+ARG PGRX_VERSION=0.12.1
 
-#ENV HOME="/home/postgres"
-ENV PATH="${PATH}:/usr/local/go/bin:${HOME}.cargo/bin"
+ENV CARGO_HOME="${HOME}/.cargo"
+ENV PATH="${PATH}:/usr/local/go/bin:${HOME}/.cargo/bin"
 
 # RUN chown -R postgres:postgres "$HOME"
 
@@ -73,6 +73,7 @@ ENV POSTGIS_VERSION=3.4 \
     PGMQ=v1.4.1 \
     PGROLL=v0.6.0 \
     TEMPORAL_TABLES=v1.2.2 \
+    PG_ANALYTICS=v0.1.1 \
     PG_SEARCH=v0.9.1 \
     PG_SEARCH_RELEASE=0.9.1 \
     PGHYDRO=v.6.6 \

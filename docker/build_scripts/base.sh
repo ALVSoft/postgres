@@ -20,7 +20,7 @@ if [ "$DEMO" = "true" ]; then
     export DEB_PG_SUPPORTED_VERSIONS="$PGVERSION"
     WITH_PERL=false
     rm -f ./*.deb
-    apt-get install -y "${BUILD_PACKAGES[@]}"
+    apt-get install -y --no-install-recommends "${BUILD_PACKAGES[@]}"
 else
     BUILD_PACKAGES+=(zlib1g-dev
                     libprotobuf-c-dev
@@ -31,17 +31,18 @@ else
                     libc-ares-dev
                     pandoc
                     pkg-config
-                    software-properties-common)
-    apt-get install -y "${BUILD_PACKAGES[@]}"
+                    software-properties-common
+                    dirmngr)
+    apt-get install -y --no-install-recommends "${BUILD_PACKAGES[@]}"
 
+    curl -sL https://cloud.r-project.org/bin/linux/ubuntu/marutter_pubkey.asc | tee -a /etc/apt/trusted.gpg.d/cran_ubuntu_key.asc
+    add-apt-repository "deb https://cloud.r-project.org/bin/linux/ubuntu $CODENAME-cran40/"
+    apt-get install -y --no-install-recommends r-base
     rm -rf /usr/local/go && curl -sL "https://go.dev/dl/go$GO_VERSION.linux-$ARCH.tar.gz" | tar -xz -C /usr/local
-    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path --profile minimal --default-toolchain stable
-    (
-        # shellcheck disable=SC1091
-        #. "$HOME/.cargo/env"
-        cargo install -j "$(nproc)" --locked cargo-pgrx --version "$CARGO_VERSION"
-        rustup component add llvm-tools-preview
-    )
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -q -y --profile minimal --default-toolchain stable
+    cargo install -j "$(nproc)" --locked cargo-pgrx --version "$PGRX_VERSION"
+    cargo install cargo-edit
+    rustup component add llvm-tools-preview
     add-apt-repository -y universe
     add-apt-repository -y ppa:groonga/ppa
     curl -sL "https://packages.groonga.org/ubuntu/groonga-apt-source-latest-$CODENAME.deb" -o "/tmp/groonga-apt-source-latest-$CODENAME.deb"
@@ -58,7 +59,7 @@ else
     curl -sL "https://github.com/zalando-pg/pg_mon/archive/$PG_MON_COMMIT.tar.gz" | tar -xz -C /tmp
     git clone -b "$PGMQ" https://github.com/tembo-io/pgmq.git /tmp/pgmq
     git clone -b "$TEMPORAL_TABLES" https://github.com/arkhipov/temporal_tables.git /tmp/temporal_tables
-    git clone https://github.com/paradedb/pg_analytics.git /tmp/pg_analytics
+    git clone -b "$PG_ANALYTICS" https://github.com/paradedb/pg_analytics.git /tmp/pg_analytics
     curl -sL "https://github.com/pghydro/pghydro/archive/refs/tags/$PGHYDRO.tar.gz" | tar -xz -C /tmp
     git clone https://github.com/pjungwir/aggs_for_vecs.git /tmp/aggs_for_vecs
     git clone -b "$PG_JSONSCHEMA" https://github.com/supabase/pg_jsonschema.git /tmp/pg_jsonschema
@@ -100,11 +101,13 @@ sed -ri 's/#(create_main_cluster) .*$/\1 = false/' /etc/postgresql-common/create
 
 for version in $DEB_PG_SUPPORTED_VERSIONS; do
     PG_CONFIG="/usr/lib/postgresql/$version/bin/pg_config" 
+
     sed -i "s/ main.*$/ main $version/g" /etc/apt/sources.list.d/pgdg.list
     apt-get update
 
     if [ "$DEMO" != "true" ]; then
         EXTRAS=("postgresql-pltcl-${version}"
+                "postgresql-${version}-plr"
                 "postgresql-${version}-dirtyread"
                 "postgresql-${version}-extra-window-functions"
                 "postgresql-${version}-first-last-agg"
@@ -147,6 +150,10 @@ for version in $DEB_PG_SUPPORTED_VERSIONS; do
         "postgresql-${version}-pgq3" \
         "postgresql-${version}-pg-stat-kcache" \
         "${EXTRAS[@]}"
+
+    if [ "$DEMO" != "true" ] && [ -f "/etc/postgresql/${version}/main/environment" ]; then
+        echo "R_HOME=${R.home(component="home")}" >> "/etc/postgresql/${version}/main/environment"
+    fi
 
     # Install 3rd party stuff
 
@@ -197,6 +204,8 @@ for version in $DEB_PG_SUPPORTED_VERSIONS; do
     done
 
     if [ "$DEMO" != "true" ]; then
+        cargo pgrx init "--pg$version=$PG_CONFIG"
+
         make -C "/tmp/pgmq/pgmq-extension" PG_CONFIG="$PG_CONFIG"
         make -C "/tmp/pgmq/pgmq-extension" install PG_CONFIG="$PG_CONFIG"
 
@@ -208,8 +217,9 @@ for version in $DEB_PG_SUPPORTED_VERSIONS; do
             cd /tmp/pg_analytics
             # shellcheck disable=SC1091
             . "$HOME/.cargo/env"
-            cargo pgrx init "--pg$version=$PG_CONFIG"
             cargo pgrx install --pg-config="$PG_CONFIG" --release
+            mkdir -p .duckdb/ && chmod -R a+rwX .duckdb/
+            mkdir -p /var/lib/postgresql/.duckdb/ && chmod -R a+rwX /var/lib/postgresql/.duckdb/
         )
 
         curl -sL "https://github.com/paradedb/paradedb/releases/download/$PG_SEARCH/postgresql-$version-pg-search_$PG_SEARCH_RELEASE-1PARADEDB-${CODENAME}_$ARCH.deb" --output "/tmp/pg_search_${version}.deb"
@@ -227,7 +237,9 @@ for version in $DEB_PG_SUPPORTED_VERSIONS; do
             mv -f .cargo/config .cargo/config.toml
             # shellcheck disable=SC1091
             . "$HOME/.cargo/env"
-            cargo pgrx init "--pg$version=$PG_CONFIG"
+            cargo upgrade -package "pgrx@$PGRX_VERSION"
+            cargo generate-lockfile
+            #cargo update --quiet --workspace pgrx* --precise "$PGRX_VERSION"
             cargo pgrx install --pg-config="$PG_CONFIG" --release
         )
 
@@ -245,7 +257,8 @@ for version in $DEB_PG_SUPPORTED_VERSIONS; do
             mv -f .cargo/config .cargo/config.toml
             # shellcheck disable=SC1091
             . "$HOME/.cargo/env"
-            cargo pgrx init "--pg$version=$PG_CONFIG"
+            cargo upgrade -package "pgrx@$PGRX_VERSION"
+            cargo generate-lockfile
             cargo pgrx install --pg-config="$PG_CONFIG" --release
         )
     fi

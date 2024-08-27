@@ -68,7 +68,8 @@ trap sv_stop TERM QUIT INT
 wait
 
 # /path/to/pgagent hostaddr=127.0.0.1 dbname=postgres user=postgres
-# shared_preload_libraries = 'pg-analytics,pg-search,pgml,pg_stat_statements'
+# shared_preload_libraries = 'pg_analytics,pg_search,pgml,pg_stat_statements'
 # pgml.venv = '/var/lib/postgresml-python/pgml-venv'
 # pgcat /etc/pgcat/config.toml
 # postgrest /etc/postgrest/postgrest.conf
+# sed -i "s/^#shared_preload_libraries = ''/shared_preload_libraries = 'pg_search,pg_analytics,pg_cron'/" /usr/share/postgresql/postgresql.conf.sample
