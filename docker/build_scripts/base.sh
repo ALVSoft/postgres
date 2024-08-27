@@ -40,8 +40,8 @@ else
     apt-get install -y --no-install-recommends r-base
     rm -rf /usr/local/go && curl -sL "https://go.dev/dl/go$GO_VERSION.linux-$ARCH.tar.gz" | tar -xz -C /usr/local
     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -q -y --profile minimal --default-toolchain stable
-    cargo install -j "$(nproc)" --locked cargo-pgrx --version "$PGRX_VERSION"
-    cargo install cargo-edit
+    cargo install cargo-pgrx --locked --version "$PGRX_VERSION" -j "$(nproc)"
+    cargo install cargo-edit --locked
     rustup component add llvm-tools-preview
     add-apt-repository -y universe
     add-apt-repository -y ppa:groonga/ppa
@@ -214,7 +214,7 @@ for version in $DEB_PG_SUPPORTED_VERSIONS; do
         make -C "/tmp/temporal_tables" PG_CONFIG="$PG_CONFIG"
         make -C "/tmp/temporal_tables" install PG_CONFIG="$PG_CONFIG"
 
-        cargo -C /tmp/pg_analytics -Z unstable-options pgrx install --pg-config="$PG_CONFIG" --release
+        cargo --manifest-path /tmp/pg_analytics pgrx install --pg-config="$PG_CONFIG" --release
         mkdir -p .duckdb/ && chmod -R a+rwX .duckdb/
         mkdir -p /var/lib/postgresql/.duckdb/ && chmod -R a+rwX /var/lib/postgresql/.duckdb/
 
