@@ -13,7 +13,7 @@ CODENAME="$(sed </etc/os-release -ne 's/^VERSION_CODENAME=//p')"
 set -ex
 sed -i 's/^#\s*\(deb.*universe\)$/\1/g' /etc/apt/sources.list
 
-apt-get update
+apt-get update -y
 
 BUILD_PACKAGES=(devscripts equivs build-essential fakeroot debhelper git gcc libc6-dev make cmake libevent-dev libbrotli-dev libssl-dev libkrb5-dev)
 if [ "$DEMO" = "true" ]; then
@@ -37,7 +37,7 @@ else
 
     curl -sL https://cloud.r-project.org/bin/linux/ubuntu/marutter_pubkey.asc | tee -a /etc/apt/trusted.gpg.d/cran_ubuntu_key.asc
     add-apt-repository "deb https://cloud.r-project.org/bin/linux/ubuntu $CODENAME-cran40/"
-    apt-get install -y --no-install-recommends r-base
+    apt-get install -y --no-install-recommends r-base-core r-recommended r-base
     rm -rf /usr/local/go && curl -sL "https://go.dev/dl/go$GO_VERSION.linux-$ARCH.tar.gz" | tar -xz -C /usr/local
     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -q -y --profile minimal --default-toolchain stable
     cargo install cargo-pgrx --locked --version "$PGRX_VERSION" -j "$(nproc)"
@@ -48,7 +48,7 @@ else
     curl -sL "https://packages.groonga.org/ubuntu/groonga-apt-source-latest-$CODENAME.deb" -o "/tmp/groonga-apt-source-latest-$CODENAME.deb"
     apt-get install -y "/tmp/groonga-apt-source-latest-$CODENAME.deb"
     echo "deb [trusted=yes] https://apt.postgresml.org $CODENAME main" > /etc/apt/sources.list.d/postgresml.list
-    apt-get update
+    apt-get update -y
 
     # install pam_oauth2.so
     git clone -b "$PAM_OAUTH2" --recurse-submodules https://github.com/zalando-pg/pam-oauth2.git
@@ -59,7 +59,7 @@ else
     curl -sL "https://github.com/zalando-pg/pg_mon/archive/$PG_MON_COMMIT.tar.gz" | tar -xz -C /tmp
     git clone -b "$PGMQ" https://github.com/tembo-io/pgmq.git /tmp/pgmq
     git clone -b "$TEMPORAL_TABLES" https://github.com/arkhipov/temporal_tables.git /tmp/temporal_tables
-    git clone -b "$PG_ANALYTICS" https://github.com/paradedb/pg_analytics.git /tmp/pg_analytics
+    git clone -b "$PG_ANALYTICS" --recurse-submodules https://github.com/paradedb/pg_analytics.git /tmp/pg_analytics
     curl -sL "https://github.com/pghydro/pghydro/archive/refs/tags/$PGHYDRO.tar.gz" | tar -xz -C /tmp
     git clone https://github.com/pjungwir/aggs_for_vecs.git /tmp/aggs_for_vecs
     git clone -b "$PG_JSONSCHEMA" https://github.com/supabase/pg_jsonschema.git /tmp/pg_jsonschema
@@ -105,7 +105,7 @@ for version in $DEB_PG_SUPPORTED_VERSIONS; do
     PG_CONFIG="/usr/lib/postgresql/$version/bin/pg_config" 
 
     sed -i "s/ main.*$/ main $version/g" /etc/apt/sources.list.d/pgdg.list
-    apt-get update
+    apt-get update -y
 
     if [ "$DEMO" != "true" ]; then
         EXTRAS=("postgresql-pltcl-${version}"
@@ -180,9 +180,9 @@ for version in $DEB_PG_SUPPORTED_VERSIONS; do
         echo "deb [signed-by=/usr/share/keyrings/timescale_E7391C94080429FF.gpg] https://packagecloud.io/timescale/timescaledb/ubuntu/ ${CODENAME} main" | tee /etc/apt/sources.list.d/timescaledb.list
         curl -L https://packagecloud.io/timescale/timescaledb/gpgkey | gpg --dearmor > /usr/share/keyrings/timescale_E7391C94080429FF.gpg
 
-        apt-get update
+        apt-get update -y
         if [ "$(apt-cache search --names-only "^timescaledb-toolkit-postgresql-${version}$" | wc -l)" -eq 1 ]; then
-            apt-get install "timescaledb-toolkit-postgresql-$version"
+            apt-get install -y "timescaledb-toolkit-postgresql-$version"
         else
             echo "Skipping timescaledb-toolkit-postgresql-$version as it's not found in the repository"
         fi
@@ -272,7 +272,7 @@ if [ "$DEMO" != "true" ]; then
 fi
 
 sed -i "s/ main.*$/ main/g" /etc/apt/sources.list.d/pgdg.list
-apt-get update
+apt-get update -y
 apt-get install -y postgresql postgresql-server-dev-all postgresql-all libpq-dev
 for version in $DEB_PG_SUPPORTED_VERSIONS; do
     apt-get install -y "postgresql-server-dev-${version}"
@@ -307,7 +307,7 @@ apt-get purge -y \
                 libmagic1 \
                 bsdmainutils
 apt-get autoremove -y
-apt-get clean
+apt-get clean -y
 dpkg -l | grep '^rc' | awk '{print $2}' | xargs apt-get purge -y
 
 # Try to minimize size by creating symlinks instead of duplicate files
