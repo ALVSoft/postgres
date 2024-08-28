@@ -214,7 +214,11 @@ for version in $DEB_PG_SUPPORTED_VERSIONS; do
         make -C "/tmp/temporal_tables" PG_CONFIG="$PG_CONFIG"
         make -C "/tmp/temporal_tables" install PG_CONFIG="$PG_CONFIG"
 
-        cargo pgrx install --manifest-path /tmp/pg_analytics/cargo.toml --pg-config="$PG_CONFIG" --release
+        # use subshell to avoid having to cd back (SC2103)
+        (
+            cd /tmp/pg_analytics
+            cargo pgrx install --pg-config="$PG_CONFIG" --release
+        )
         mkdir -p .duckdb/ && chmod -R a+rwX .duckdb/
         mkdir -p /var/lib/postgresql/.duckdb/ && chmod -R a+rwX /var/lib/postgresql/.duckdb/
 
@@ -227,20 +231,27 @@ for version in $DEB_PG_SUPPORTED_VERSIONS; do
         make -C "/tmp/aggs_for_vecs" PG_CONFIG="$PG_CONFIG"
         make -C "/tmp/aggs_for_vecs" install PG_CONFIG="$PG_CONFIG"
 
-        cd 
-        mv -f .cargo/config .cargo/config.toml
-        cargo -C /tmp/pg_jsonschema -Z unstable-options upgrade -package "pgrx@$PGRX_VERSION"
-        cargo -C /tmp/pg_jsonschema -Z unstable-options generate-lockfile
-        #cargo -C /tmp/pg_jsonschema -Z unstable-options update --quiet --workspace pgrx* --precise "$PGRX_VERSION"
-        cargo -C /tmp/pg_jsonschema -Z unstable-options pgrx install --pg-config="$PG_CONFIG" --release
+        # use subshell to avoid having to cd back (SC2103) 
+        (
+            cd /tmp/pg_jsonschema
+            mv -f .cargo/config .cargo/config.toml
+            cargo upgrade -package "pgrx@$PGRX_VERSION"
+            cargo generate-lockfile
+            #cargo update --quiet --workspace pgrx* --precise "$PGRX_VERSION"
+            cargo pgrx install --pg-config="$PG_CONFIG" --release
+        )
 
         cp "/tmp/pg_uuidv7/$version/pg_uuidv7.so" "/usr/lib/postgresql/$version/lib"
         cp "/tmp/pg_uuidv7/pg_uuidv7--$PG_UUIDV7_RELEASE.sql" "/tmp/pg_uuidv7/pg_uuidv7.control" "/usr/share/postgresql/$version/extension"
 
-        mv -f /tmp/pg_graphql/.cargo/config /tmp/pg_graphql/.cargo/config.toml
-        cargo -C /tmp/pg_graphql -Z unstable-options upgrade -package "pgrx@$PGRX_VERSION"
-        cargo -C /tmp/pg_graphql -Z unstable-options generate-lockfile
-        cargo -C /tmp/pg_graphql -Z unstable-options pgrx install --pg-config="$PG_CONFIG" --release
+        # use subshell to avoid having to cd back (SC2103)
+        (
+            cd /tmp/pg_graphql
+            mv -f .cargo/config .cargo/config.toml
+            cargo upgrade -package "pgrx@$PGRX_VERSION"
+            cargo generate-lockfile
+            cargo pgrx install --pg-config="$PG_CONFIG" --release
+        )
     fi
 done
 
@@ -248,8 +259,12 @@ apt-get install -y skytools3-ticker pgbouncer
 if [ "$DEMO" != "true" ]; then
     apt-get install -y postgresml-python pgagent pgbackrest
 
-    cargo -C /tmp/pgcat -Z unstable-options build --release
-    cp target/release/pgcat /usr/bin/pgcat
+    # use subshell to avoid having to cd back (SC2103)
+    (
+        cd /tmp/pgcat
+        cargo build --release
+        cp target/release/pgcat /usr/bin/pgcat
+    )
 
     go install github.com/xataio/pgroll@"$PGROLL"
 
