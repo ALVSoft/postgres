@@ -38,8 +38,8 @@ else
 
     rm -rf /usr/local/go && curl -sL "https://go.dev/dl/go$GO_VERSION.linux-$ARCH.tar.gz" | tar -xz -C /usr/local
     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -q -y --profile minimal --default-toolchain stable
-    cargo install cargo-pgrx --locked --version "$PGRX_VERSION" -j "$(nproc)"
-    cargo install cargo-edit --locked
+    cargo install cargo-pgrx --locked --version "$PGRX_VERSION12" -j "$(nproc)" --root "$CARGO_HOME/registry/bin/cargo-pgrx-$PGRX_VERSION12"
+    cargo install cargo-pgrx --locked --version "$PGRX_VERSION11" -j "$(nproc)" --root "$CARGO_HOME/registry/bin/cargo-pgrx-$PGRX_VERSION11"
     rustup component add llvm-tools-preview
     add-apt-repository -y universe
     add-apt-repository -y ppa:groonga/ppa
@@ -232,10 +232,10 @@ for version in $DEB_PG_SUPPORTED_VERSIONS; do
         # use subshell to avoid having to cd back (SC2103) 
         (
             cd /tmp/pg_jsonschema
-            mv -f .cargo/config .cargo/config.toml
-            cargo upgrade --incompatible allow --package "pgrx@$PGRX_VERSION" --recursive true
-            #cargo generate-lockfile
-            #cargo update --quiet --workspace pgrx* --precise "$PGRX_VERSION"
+            # mv -f .cargo/config .cargo/config.toml
+            # cargo upgrade --incompatible allow --package "pgrx@$PGRX_VERSION" --recursive true
+            # cargo generate-lockfile
+            # cargo update --quiet --workspace pgrx* --precise "$PGRX_VERSION"
             cargo pgrx install --pg-config="$PG_CONFIG" --release
         )
 
@@ -245,8 +245,8 @@ for version in $DEB_PG_SUPPORTED_VERSIONS; do
         # use subshell to avoid having to cd back (SC2103)
         (
             cd /tmp/pg_graphql
-            mv -f .cargo/config .cargo/config.toml
-            cargo upgrade --incompatible allow --package "pgrx@$PGRX_VERSION" --recursive true
+            # mv -f .cargo/config .cargo/config.toml
+            # cargo upgrade --incompatible allow --package "pgrx@$PGRX_VERSION" --recursive true
             cargo pgrx install --pg-config="$PG_CONFIG" --release
         )
     fi
