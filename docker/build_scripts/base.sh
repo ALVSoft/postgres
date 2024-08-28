@@ -233,8 +233,8 @@ for version in $DEB_PG_SUPPORTED_VERSIONS; do
         (
             cd /tmp/pg_jsonschema
             mv -f .cargo/config .cargo/config.toml
-            cargo upgrade -package "pgrx@$PGRX_VERSION"
-            cargo generate-lockfile
+            cargo upgrade --recursive true --compatible --package pgrx
+            #cargo generate-lockfile
             #cargo update --quiet --workspace pgrx* --precise "$PGRX_VERSION"
             cargo pgrx install --pg-config="$PG_CONFIG" --release
         )
@@ -246,8 +246,7 @@ for version in $DEB_PG_SUPPORTED_VERSIONS; do
         (
             cd /tmp/pg_graphql
             mv -f .cargo/config .cargo/config.toml
-            cargo upgrade -package "pgrx@$PGRX_VERSION"
-            cargo generate-lockfile
+            cargo upgrade --recursive true --compatible --package pgrx
             cargo pgrx install --pg-config="$PG_CONFIG" --release
         )
     fi
