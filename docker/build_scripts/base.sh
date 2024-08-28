@@ -214,7 +214,7 @@ for version in $DEB_PG_SUPPORTED_VERSIONS; do
         make -C "/tmp/temporal_tables" PG_CONFIG="$PG_CONFIG"
         make -C "/tmp/temporal_tables" install PG_CONFIG="$PG_CONFIG"
 
-        cargo --manifest-path /tmp/pg_analytics pgrx install --pg-config="$PG_CONFIG" --release
+        cargo pgrx install --manifest-path /tmp/pg_analytics/cargo.toml --pg-config="$PG_CONFIG" --release
         mkdir -p .duckdb/ && chmod -R a+rwX .duckdb/
         mkdir -p /var/lib/postgresql/.duckdb/ && chmod -R a+rwX /var/lib/postgresql/.duckdb/
 
