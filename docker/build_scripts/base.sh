@@ -32,12 +32,10 @@ else
                     pandoc
                     pkg-config
                     software-properties-common
-                    dirmngr)
+                    dirmngr
+                    r-base)
     apt-get install -y --no-install-recommends "${BUILD_PACKAGES[@]}"
 
-    curl -sL https://cloud.r-project.org/bin/linux/ubuntu/marutter_pubkey.asc | tee -a /etc/apt/trusted.gpg.d/cran_ubuntu_key.asc
-    add-apt-repository "deb https://cloud.r-project.org/bin/linux/ubuntu $CODENAME-cran40/"
-    apt-get install -y --no-install-recommends r-base-core r-recommended r-base
     rm -rf /usr/local/go && curl -sL "https://go.dev/dl/go$GO_VERSION.linux-$ARCH.tar.gz" | tar -xz -C /usr/local
     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -q -y --profile minimal --default-toolchain stable
     cargo install cargo-pgrx --locked --version "$PGRX_VERSION" -j "$(nproc)"
