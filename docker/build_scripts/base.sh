@@ -232,8 +232,8 @@ for version in $DEB_PG_SUPPORTED_VERSIONS; do
         # use subshell to avoid having to cd back (SC2103) 
         (
             cd /tmp/pg_jsonschema
-            cargo update --quiet --ignore-rust-version --package pgrx --precise="$PGRX_VERSION12"
             mv -f .cargo/config .cargo/config.toml
+            cargo update --quiet --package pgrx --precise="$PGRX_VERSION12"
             cargo pgrx install --pg-config="$PG_CONFIG" --release
         )
 
@@ -243,8 +243,8 @@ for version in $DEB_PG_SUPPORTED_VERSIONS; do
         # use subshell to avoid having to cd back (SC2103)
         (
             cd /tmp/pg_graphql
-            cargo update --quiet --ignore-rust-version --package pgrx --precise="$PGRX_VERSION12"
             mv -f .cargo/config .cargo/config.toml
+            cargo update --quiet --package pgrx --precise="$PGRX_VERSION12"
             cargo pgrx install --pg-config="$PG_CONFIG" --release
         )
     fi
