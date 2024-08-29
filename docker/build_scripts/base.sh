@@ -33,13 +33,13 @@ else
                     pkg-config
                     software-properties-common
                     dirmngr
-                    r-base)
+                    r-base
+                    jq)
     apt-get install -y --no-install-recommends "${BUILD_PACKAGES[@]}"
 
+    
     rm -rf /usr/local/go && curl -sL "https://go.dev/dl/go$GO_VERSION.linux-$ARCH.tar.gz" | tar -xz -C /usr/local
     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -q -y --profile minimal --default-toolchain stable
-    cargo install cargo-pgrx --locked --version "$PGRX_VERSION12" -j "$(nproc)"
-    # cargo install cargo-pgrx --locked --version "$PGRX_VERSION11" -j "$(nproc)" --root "$CARGO_HOME/registry/bin/cargo-pgrx-$PGRX_VERSION11"
     rustup component add llvm-tools-preview
     add-apt-repository -y universe
     add-apt-repository -y ppa:groonga/ppa
@@ -55,6 +55,9 @@ else
     # prepare 3rd sources
     git clone -b "$PLPROFILER" https://github.com/bigsql/plprofiler.git /tmp/plprofiler
     curl -sL "https://github.com/zalando-pg/pg_mon/archive/$PG_MON_COMMIT.tar.gz" | tar -xz -C /tmp
+    mkdir /tmp/plprql
+    curl --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/kaspermarstal/plprql/main/scripts/install.sh > /tmp/plprql/install.sh
+    chmod +x /tmp/plprql/install.sh
     git clone -b "$PGMQ" https://github.com/tembo-io/pgmq.git /tmp/pgmq
     git clone -b "$TEMPORAL_TABLES" https://github.com/arkhipov/temporal_tables.git /tmp/temporal_tables
     git clone -b "$PG_ANALYTICS" --recurse-submodules https://github.com/paradedb/pg_analytics.git /tmp/pg_analytics
@@ -204,21 +207,11 @@ for version in $DEB_PG_SUPPORTED_VERSIONS; do
     done
 
     if [ "$DEMO" != "true" ]; then
-        cargo pgrx init "--pg$version=$PG_CONFIG"
-
         make -C "/tmp/pgmq/pgmq-extension" PG_CONFIG="$PG_CONFIG"
         make -C "/tmp/pgmq/pgmq-extension" install PG_CONFIG="$PG_CONFIG"
 
         make -C "/tmp/temporal_tables" PG_CONFIG="$PG_CONFIG"
         make -C "/tmp/temporal_tables" install PG_CONFIG="$PG_CONFIG"
-
-        # use subshell to avoid having to cd back (SC2103)
-        (
-            cd /tmp/pg_analytics
-            cargo pgrx install --pg-config="$PG_CONFIG" --release
-        )
-        mkdir -p .duckdb/ && chmod -R a+rwX .duckdb/
-        mkdir -p /var/lib/postgresql/.duckdb/ && chmod -R a+rwX /var/lib/postgresql/.duckdb/
 
         curl -sL "https://github.com/paradedb/paradedb/releases/download/$PG_SEARCH/postgresql-$version-pg-search_$PG_SEARCH_RELEASE-1PARADEDB-${CODENAME}_$ARCH.deb" --output "/tmp/pg_search_${version}.deb"
         apt-get install -y "/tmp/pg_search_${version}.deb"
@@ -229,24 +222,35 @@ for version in $DEB_PG_SUPPORTED_VERSIONS; do
         make -C "/tmp/aggs_for_vecs" PG_CONFIG="$PG_CONFIG"
         make -C "/tmp/aggs_for_vecs" install PG_CONFIG="$PG_CONFIG"
 
-        # use subshell to avoid having to cd back (SC2103) 
-        (
-            cd /tmp/pg_jsonschema
-            mv -f .cargo/config .cargo/config.toml
-            cargo update --quiet --package pgrx --precise="$PGRX_VERSION12"
-            cargo pgrx install --pg-config="$PG_CONFIG" --release
-        )
-
         cp "/tmp/pg_uuidv7/$version/pg_uuidv7.so" "/usr/lib/postgresql/$version/lib"
         cp "/tmp/pg_uuidv7/pg_uuidv7--$PG_UUIDV7_RELEASE.sql" "/tmp/pg_uuidv7/pg_uuidv7.control" "/usr/share/postgresql/$version/extension"
 
-        # use subshell to avoid having to cd back (SC2103)
+        # Install PGRX version 0.11.x for dependencies required it
+        cargo install --locked "cargo-pgrx@$PGRX_VERSION11"
+        cargo pgrx init "--pg$version=$PG_CONFIG"
+
+        /tmp/plprql/install.sh --pg-version "$PG_CONFIG" --revision "$PLPRQL_VERSION"
+
         (
-            cd /tmp/pg_graphql
-            mv -f .cargo/config .cargo/config.toml
-            cargo update --quiet --package pgrx --precise="$PGRX_VERSION12"
+            cd /tmp/pg_jsonschema
             cargo pgrx install --pg-config="$PG_CONFIG" --release
         )
+
+        (
+            cd /tmp/pg_graphql
+            cargo pgrx install --pg-config="$PG_CONFIG" --release
+        )
+
+        # Install PGRX version 0.12.x for dependencies required it
+        cargo install --locked "cargo-pgrx@$PGRX_VERSION12"
+        cargo pgrx init "--pg$version=$PG_CONFIG"
+
+        (
+            cd /tmp/pg_analytics
+            cargo pgrx install --pg-config="$PG_CONFIG" --release
+        )
+        mkdir -p .duckdb/ && chmod -R a+rwX .duckdb/
+        mkdir -p /var/lib/postgresql/.duckdb/ && chmod -R a+rwX /var/lib/postgresql/.duckdb/
     fi
 done
 
@@ -254,7 +258,6 @@ apt-get install -y skytools3-ticker pgbouncer
 if [ "$DEMO" != "true" ]; then
     apt-get install -y postgresml-python pgagent pgbackrest
 
-    # use subshell to avoid having to cd back (SC2103)
     (
         cd /tmp/pgcat
         cargo build --release
