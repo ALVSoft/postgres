@@ -22,10 +22,14 @@ setting_pgrx() {
 
     # Check if cargo pgrx is installed
     if ! cargo --list | grep -q 'pgrx' >/dev/null 2>&1; then
+        # Install and init pgrx version required by the extension
+        cargo install cargo-pgrx --locked --force --version "${PGRX_VERSION}"
+        cargo pgrx init "--pg$version=$PG_CONFIG"
+    else
         # Check if the required version of pgrx is installed
         PGRX_VERSION_INSTALLED=$(cargo pgrx --version | awk '{print $2}')
         if [[ "$PGRX_VERSION_INSTALLED" != "$PGRX_VERSION" ]]; then
-            # Install pgrx version required by the extension
+            # Install and init pgrx version required by the extension
             cargo install cargo-pgrx --locked --force --version "${PGRX_VERSION}"
             cargo pgrx init "--pg$version=$PG_CONFIG"
         fi
