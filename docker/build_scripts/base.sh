@@ -229,7 +229,7 @@ for version in $DEB_PG_SUPPORTED_VERSIONS; do
         cargo install --locked "cargo-pgrx@$PGRX_VERSION11"
         cargo pgrx init "--pg$version=$PG_CONFIG"
 
-        /tmp/plprql/install.sh --pg-version "$PG_CONFIG" --revision "$PLPRQL_VERSION"
+        /tmp/plprql/install.sh --pg-config "$PG_CONFIG" --revision "$PLPRQL_VERSION"
 
         (
             cd /tmp/pg_jsonschema
