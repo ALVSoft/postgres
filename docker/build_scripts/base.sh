@@ -274,7 +274,7 @@ done
 
 apt-get install -y skytools3-ticker pgbouncer
 if [ "$DEMO" != "true" ]; then
-    apt-get install -y postgresml-python pgagent pgbackrest
+    apt-get install -y pgagent pgbackrest #postgresml-python
 
     (
         cd /tmp/pgcat
