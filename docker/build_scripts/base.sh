@@ -228,7 +228,7 @@ for version in $DEB_PG_SUPPORTED_VERSIONS; do
         cargo pgrx init "--pg$version=$PG_CONFIG"
 
         (
-            cd /tmp/plprql
+            cd /tmp/plprql/plprql
             cargo pgrx install --no-default-features --pg-config="$PG_CONFIG" --release
         )
 
