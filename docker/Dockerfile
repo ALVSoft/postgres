@@ -84,7 +84,7 @@ ENV POSTGIS_VERSION=3.4 \
     POSTGREST=v12.2.3 \
     PG_GRAPHQL=v1.5.7 \
     PGCAT=v1.1.1 \
-    PLPRQL_VERSION=v1.0.0
+    PLPRQL=v1.0.0
 
 WORKDIR /builddeps
 RUN bash base.sh

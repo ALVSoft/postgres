@@ -55,9 +55,7 @@ else
     # prepare 3rd sources
     git clone -b "$PLPROFILER" https://github.com/bigsql/plprofiler.git /tmp/plprofiler
     curl -sL "https://github.com/zalando-pg/pg_mon/archive/$PG_MON_COMMIT.tar.gz" | tar -xz -C /tmp
-    mkdir /tmp/plprql
-    curl --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/kaspermarstal/plprql/main/scripts/install.sh > /tmp/plprql/install.sh
-    chmod +x /tmp/plprql/install.sh
+    git clone -b "$PLPRQL" https://github.com/kaspermarstal/plprql.git /tmp/plprql
     git clone -b "$PGMQ" https://github.com/tembo-io/pgmq.git /tmp/pgmq
     git clone -b "$TEMPORAL_TABLES" https://github.com/arkhipov/temporal_tables.git /tmp/temporal_tables
     git clone -b "$PG_ANALYTICS" --recurse-submodules https://github.com/paradedb/pg_analytics.git /tmp/pg_analytics
@@ -229,7 +227,10 @@ for version in $DEB_PG_SUPPORTED_VERSIONS; do
         cargo install --locked "cargo-pgrx@$PGRX_VERSION11"
         cargo pgrx init "--pg$version=$PG_CONFIG"
 
-        /tmp/plprql/install.sh --pg-config "$PG_CONFIG" --revision "$PLPRQL_VERSION"
+        (
+            cd /tmp/plprql
+            cargo pgrx install --no-default-features --pg-config="$PG_CONFIG" --release
+        )
 
         (
             cd /tmp/pg_jsonschema
