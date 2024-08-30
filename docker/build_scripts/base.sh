@@ -15,6 +15,23 @@ sed -i 's/^#\s*\(deb.*universe\)$/\1/g' /etc/apt/sources.list
 
 apt-get update -y
 
+# Function to install and init pgrx
+setting_pgrx() {
+    # Fetch extension version for pgrx
+    PGRX_VERSION=$(cargo metadata --format-version 1 | jq -r '.packages[] | select(.name=="pgrx") | .version')
+
+    # Check if cargo pgrx is installed
+    if ! cargo --list | grep -q 'pgrx' >/dev/null 2>&1; then
+        # Check if the required version of pgrx is installed
+        PGRX_VERSION_INSTALLED=$(cargo pgrx --version | awk '{print $2}')
+        if [[ "$PGRX_VERSION_INSTALLED" != "$PGRX_VERSION" ]]; then
+            # Install pgrx version required by the extension
+            cargo install cargo-pgrx --locked --force --version "${PGRX_VERSION}"
+            cargo pgrx init "--pg$version=$PG_CONFIG"
+        fi
+    fi
+}
+
 BUILD_PACKAGES=(devscripts equivs build-essential fakeroot debhelper git gcc libc6-dev make cmake libevent-dev libbrotli-dev libssl-dev libkrb5-dev)
 if [ "$DEMO" = "true" ]; then
     export DEB_PG_SUPPORTED_VERSIONS="$PGVERSION"
@@ -223,31 +240,27 @@ for version in $DEB_PG_SUPPORTED_VERSIONS; do
         cp "/tmp/pg_uuidv7/$version/pg_uuidv7.so" "/usr/lib/postgresql/$version/lib"
         cp "/tmp/pg_uuidv7/pg_uuidv7--$PG_UUIDV7_RELEASE.sql" "/tmp/pg_uuidv7/pg_uuidv7.control" "/usr/share/postgresql/$version/extension"
 
-        # Install PGRX version 0.11.x for dependencies required it
-        cargo install --locked "cargo-pgrx@$PGRX_VERSION11"
-        cargo pgrx init "--pg$version=$PG_CONFIG"
-
-        (
-            cd /tmp/plprql/plprql
-            cargo pgrx install --no-default-features --pg-config="$PG_CONFIG" --release
-        )
-
         (
             cd /tmp/pg_jsonschema
+            setting_pgrx
             cargo pgrx install --pg-config="$PG_CONFIG" --release
         )
 
         (
             cd /tmp/pg_graphql
+            setting_pgrx
             cargo pgrx install --pg-config="$PG_CONFIG" --release
         )
 
-        # Install PGRX version 0.12.x for dependencies required it
-        cargo install --locked "cargo-pgrx@$PGRX_VERSION12"
-        cargo pgrx init "--pg$version=$PG_CONFIG"
+        (
+            cd /tmp/plprql/plprql
+            setting_pgrx
+            cargo pgrx install --no-default-features --pg-config="$PG_CONFIG" --release
+        )
 
         (
             cd /tmp/pg_analytics
+            setting_pgrx
             cargo pgrx install --pg-config="$PG_CONFIG" --release
         )
         mkdir -p .duckdb/ && chmod -R a+rwX .duckdb/
