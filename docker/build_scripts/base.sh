@@ -54,9 +54,8 @@ else
                     pkg-config
                     software-properties-common
                     dirmngr
-                    r-base
                     jq)
-    apt-get install -y --no-install-recommends "${BUILD_PACKAGES[@]}"
+    apt-get install -y --no-install-recommends "${BUILD_PACKAGES[@]}" r-base
 
     
     rm -rf /usr/local/go && curl -sL "https://go.dev/dl/go$GO_VERSION.linux-$ARCH.tar.gz" | tar -xz -C /usr/local

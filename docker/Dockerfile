@@ -57,8 +57,6 @@ ARG GO_VERSION=1.23.0
 ENV CARGO_HOME="${HOME}/.cargo"
 ENV PATH="${PATH}:/usr/local/go/bin:${CARGO_HOME}/bin"
 
-# RUN chown -R postgres:postgres "$HOME"
-
 # Install PostgreSQL, extensions and contribs
 ENV POSTGIS_VERSION=3.4 \
     BG_MON_COMMIT=ef60961eff92672b1e21f5260dc1211367da6f1f \
@@ -100,10 +98,10 @@ WORKDIR /
 
 RUN bash /builddeps/patroni_wale.sh
 
-RUN if [ "$COMPRESS" = "true" ]; then bash /builddeps/compress_build.sh; fi
+# COPY pgcat.toml /etc/pgcat/config.toml
+# COPY postgrest.conf /etc/postgrest/postgrest.conf
 
-COPY pgcat.toml /etc/pgcat/config.toml
-COPY postgrest.conf /etc/postgrest/postgrest.conf
+RUN if [ "$COMPRESS" = "true" ]; then bash /builddeps/compress_build.sh; fi
 
 
 FROM builder
