@@ -91,7 +91,7 @@ else
 fi
 echo '#!/bin/bash' > "$VARIABLES_FILE"
 echo "BUILD_PACKAGES=(${BUILD_PACKAGES[*]})" >> "$VARIABLES_FILE"
-chmod ug+rwx "$VARIABLE_FILE"
+chmod ug+rwx "$VARIABLES_FILE"
 if [ "$WITH_PERL" != "true" ]; then
     version=$(apt-cache show perl | sed -n 's/^Version: //p' | sort -rV | head -n 1)
     printf "Priority: standard\nStandards-Version: 3.9.8\nPackage: perl\nMulti-Arch: allowed\nReplaces: perl-base, perl-modules\nVersion: %s\nDescription: perl" "$version" > perl
