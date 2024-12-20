@@ -7,7 +7,6 @@ BEGIN
     ELSE
         CREATE ROLE part_man ADMIN admin;
     END IF;
-
     EXECUTE 'GRANT EXECUTE ON ALL PROCEDURES IN SCHEMA @extschema@ TO part_man';
 END;$$;
 GRANT USAGE ON SCHEMA @extschema@ TO part_man;

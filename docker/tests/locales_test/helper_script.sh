@@ -1,10 +1,7 @@
 #!/bin/bash
-
 # Script is copied from https://github.com/ardentperf/glibc-unicode-sorting
-
 UNICODE_VERS="14"
 curl -kO https://www.unicode.org/Public/${UNICODE_VERS}.0.0/ucd/UnicodeData.txt
-
 perl -naF';' -CO -e'
   use utf8;
   sub pr {

@@ -1,8 +1,6 @@
 version: "2.1"
-
 networks:
     demo:
-
 services:
     minio:
         image: minio/minio:RELEASE.2021-09-03T03-56-13Z
@@ -14,14 +12,12 @@ services:
         container_name: demo-minio
         entrypoint: sh
         command: -c 'mkdir -p /export/testbucket && /usr/bin/minio server /export'
-
     etcd:
         image: ${SPILO_TEST_IMAGE:-spilo}
         networks: [ demo ]
         container_name: demo-etcd
         hostname: etcd
         command: "sh -c 'export ETCD_UNSUPPORTED_ARCH=$$(dpkg --print-architecture) && exec etcd -name etcd1 -listen-client-urls http://0.0.0.0:2379 -advertise-client-urls http://$$(hostname --ip-address):2379'"
-
     spilo1: &spilo
         depends_on: [ minio ]
         image: ${SPILO_TEST_IMAGE:-spilo}
@@ -61,12 +57,10 @@ services:
             CLONE_WALE_DISABLE_S3_SSE: *wale_disable_s3_sse
         hostname: spilo1
         container_name: demo-spilo1
-
     spilo2:
         <<: *spilo
         hostname: spilo2
         container_name: demo-spilo2
-
     spilo3:
         <<: *spilo
         hostname: spilo3

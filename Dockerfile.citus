@@ -6,16 +6,12 @@ ARG PGHOME=/home/postgres
 ARG PGDATA=$PGHOME/data
 ARG LC_ALL=C.UTF-8
 ARG LANG=C.UTF-8
-
 FROM postgres:$PG_MAJOR as builder
-
 ARG PGHOME
 ARG PGDATA
 ARG LC_ALL
 ARG LANG
-
 ENV ETCDVERSION=3.3.13 CONFDVERSION=0.16.0
-
 RUN set -ex \
     && export DEBIAN_FRONTEND=noninteractive \
     && echo 'APT::Install-Recommends "0";\nAPT::Install-Suggests "0";' > /etc/apt/apt.conf.d/01norecommend \
@@ -121,7 +117,6 @@ RUN set -ex \
     && find /var/log -type f -exec truncate --size 0 {} \; \
     && find /usr/lib/python3/dist-packages -name '*test*' | xargs rm -fr \
     && find /lib/$(uname -m)-linux-gnu/security -type f ! -name pam_env.so ! -name pam_permit.so ! -name pam_unix.so -delete
-
 # perform compression if it is necessary
 ARG COMPRESS
 RUN if [ "$COMPRESS" = "true" ]; then \
@@ -147,33 +142,25 @@ RUN if [ "$COMPRESS" = "true" ]; then \
     else \
         /bin/busybox --install -s; \
     fi
-
 FROM scratch
 COPY --from=builder / /
-
 LABEL maintainer="Alexander Kukushkin <akukushkin@microsoft.com>"
-
 ARG PG_MAJOR
 ARG COMPRESS
 ARG PGHOME
 ARG PGDATA
 ARG LC_ALL
 ARG LANG
-
 ARG PGBIN=/usr/lib/postgresql/$PG_MAJOR/bin
-
 ENV LC_ALL=$LC_ALL LANG=$LANG EDITOR=/usr/bin/editor
 ENV PGDATA=$PGDATA PATH=$PATH:$PGBIN
 ENV ETCDCTL_API=3
-
 COPY patroni /patroni/
 COPY extras/confd/conf.d/haproxy.toml /etc/confd/conf.d/
 COPY extras/confd/templates/haproxy-citus.tmpl /etc/confd/templates/haproxy.tmpl
 COPY patroni*.py docker/entrypoint.sh /
 COPY postgres?.yml $PGHOME/
-
 WORKDIR $PGHOME
-
 RUN sed -i 's/env python/&3/' /patroni*.py \
     # "fix" patroni configs
     && sed -i 's/^  listen: 127.0.0.1/  listen: 0.0.0.0/' postgres?.yml \
@@ -195,7 +182,5 @@ RUN sed -i 's/env python/&3/' /patroni*.py \
     && if [ "$COMPRESS" = "true" ]; then chmod u+s /usr/bin/sudo; fi \
     && chmod +s /bin/ping \
     && chown -R postgres:postgres $PGHOME /run /etc/haproxy
-
 USER postgres
-
 ENTRYPOINT ["/bin/sh", "/entrypoint.sh"]

@@ -1,7 +1,6 @@
 scope: batman
 #namespace: /service/
 name: postgresql2
-
 restapi:
   listen: 127.0.0.1:8010
   connect_address: 127.0.0.1:8010
@@ -11,17 +10,14 @@ restapi:
   authentication:
     username: username
     password: password
-
 #ctl:
 #  insecure: false # Allow connections to Patroni REST API without verifying certificates
 #  certfile: /etc/ssl/certs/ssl-cert-snakeoil.pem
 #  keyfile: /etc/ssl/private/ssl-cert-snakeoil.key
 #  cacert: /etc/ssl/certs/ssl-cacert-snakeoil.pem
-
 #citus:
 #  database: citus
 #  group: 1  # worker
-
 etcd3:
   #Provide host to do the initial discovery of the cluster topology:
   host: 127.0.0.1:2379
@@ -35,14 +31,12 @@ etcd3:
   #Once discovery is complete Patroni will use the list of advertised clientURLs
   #It is possible to change this behavior through by setting:
   #use_proxies: true
-
 #raft:
 #  data_dir: .
 #  self_addr: 127.0.0.1:2224
 #  partner_addrs:
 #  - 127.0.0.1:2222
 #  - 127.0.0.1:2223
-
 # The bootstrap configuration. Works only when the cluster is not yet initialized.
 # If the cluster is already initialized, all changes in the `bootstrap` section are ignored!
 bootstrap:
@@ -82,12 +76,10 @@ bootstrap:
 #        archive_command: mkdir -p ../wal_archive && test ! -f ../wal_archive/%f && cp %p ../wal_archive/%f
 #      recovery_conf:
 #        restore_command: cp ../wal_archive/%f %p
-
   # some desired options for 'initdb'
   initdb:  # Note: It needs to be a list (some options need values, others are switches)
   - encoding: UTF8
   - data-checksums
-
 postgresql:
   listen: 127.0.0.1:5434
   connect_address: 127.0.0.1:5434

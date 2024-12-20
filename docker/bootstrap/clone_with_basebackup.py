@@ -1,15 +1,11 @@
 #!/usr/bin/env python
-
 import argparse
 import logging
 import subprocess
 import sys
-
 from maybe_pg_upgrade import call_maybe_pg_upgrade
-
 logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
-
 
 def read_configuration():
     parser = argparse.ArgumentParser(description="Script to clone from another cluster using pg_basebackup")
@@ -23,7 +19,6 @@ def read_configuration():
     parser.add_argument('--user', required=True, help='PostgreSQL user to connect with')
     return parser.parse_args()
 
-
 def escape_value(val):
     quote = False
     temp = []
@@ -36,15 +31,12 @@ def escape_value(val):
     result = ''.join(temp)
     return result if not quote else '\'{0}\''.format(result)
 
-
 def prepare_connection(options):
     connection = []
     for attname in ('host', 'port', 'user', 'dbname'):
         attvalue = getattr(options, attname)
         connection.append('{0}={1}'.format(attname, escape_value(attvalue)))
-
     return ' '.join(connection), {'PGPASSFILE': options.pgpass}
-
 
 def run_basebackup(options):
     connstr, env = prepare_connection(options)
@@ -54,7 +46,6 @@ def run_basebackup(options):
         raise Exception("pg_basebackup exited with code={0}".format(ret))
     return 0
 
-
 def main():
     options = read_configuration()
     try:
@@ -63,7 +54,6 @@ def main():
         logger.exception("Clone failed")
         return 1
     return call_maybe_pg_upgrade()
-
 
 if __name__ == '__main__':
     sys.exit(main())

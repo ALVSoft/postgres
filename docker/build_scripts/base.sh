@@ -1,25 +1,21 @@
 #!/bin/bash
-
 ## -------------------------------------------
 ## Install PostgreSQL, extensions and contribs
 ## -------------------------------------------
-
 export DEBIAN_FRONTEND=noninteractive
 MAKEFLAGS="-j $(grep -c ^processor /proc/cpuinfo)"
 export MAKEFLAGS
 ARCH="$(dpkg --print-architecture)"
 CODENAME="$(sed </etc/os-release -ne 's/^VERSION_CODENAME=//p')"
-
 set -ex
 sed -i 's/^#\s*\(deb.*universe\)$/\1/g' /etc/apt/sources.list
-
 apt-get update -y
+# apt-get upgrade -y --fix-missing
 
 # Function to install and init pgrx
 setting_pgrx() {
     # Fetch extension version for pgrx
     PGRX_VERSION=$(cargo metadata --format-version 1 | jq -r '.packages[] | select(.name=="pgrx") | .version')
-
     # Check if cargo pgrx is installed
     if ! cargo --list | grep -q 'pgrx' >/dev/null 2>&1; then
         # Install and init pgrx version required by the extension
@@ -35,13 +31,14 @@ setting_pgrx() {
         fi
     fi
 }
-
 BUILD_PACKAGES=(devscripts equivs build-essential fakeroot debhelper git gcc libc6-dev make cmake libevent-dev libbrotli-dev libssl-dev libkrb5-dev)
 if [ "$DEMO" = "true" ]; then
     export DEB_PG_SUPPORTED_VERSIONS="$PGVERSION"
     WITH_PERL=false
     rm -f ./*.deb
     apt-get install -y --no-install-recommends "${BUILD_PACKAGES[@]}"
+
+    git config --global http.postBuffer 157286400
 else
     BUILD_PACKAGES+=(zlib1g-dev
                     libprotobuf-c-dev
@@ -56,8 +53,9 @@ else
                     dirmngr
                     jq)
     apt-get install -y --no-install-recommends "${BUILD_PACKAGES[@]}" r-base
-
     
+    git config --global http.postBuffer 157286400
+
     rm -rf /usr/local/go && curl -sL "https://go.dev/dl/go$GO_VERSION.linux-$ARCH.tar.gz" | tar -xz -C /usr/local
     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -q -y --profile minimal --default-toolchain stable
     rustup component add llvm-tools-preview
@@ -67,18 +65,16 @@ else
     apt-get install -y "/tmp/groonga-apt-source-latest-$CODENAME.deb"
     echo "deb [trusted=yes] https://apt.postgresml.org $CODENAME main" > /etc/apt/sources.list.d/postgresml.list
     apt-get update -y
-
     # install pam_oauth2.so
     git clone -b "$PAM_OAUTH2" --recurse-submodules https://github.com/zalando-pg/pam-oauth2.git
     make -C pam-oauth2 install
-
     # prepare 3rd sources
     git clone -b "$PLPROFILER" https://github.com/bigsql/plprofiler.git /tmp/plprofiler
     curl -sL "https://github.com/zalando-pg/pg_mon/archive/$PG_MON_COMMIT.tar.gz" | tar -xz -C /tmp
     git clone -b "$PLPRQL" https://github.com/kaspermarstal/plprql.git /tmp/plprql
     git clone -b "$PGMQ" https://github.com/tembo-io/pgmq.git /tmp/pgmq
     git clone -b "$TEMPORAL_TABLES" https://github.com/arkhipov/temporal_tables.git /tmp/temporal_tables
-    git clone -b "$PG_ANALYTICS" --recurse-submodules https://github.com/paradedb/pg_analytics.git /tmp/pg_analytics
+    # git clone -b "$PG_ANALYTICS" --recurse-submodules https://github.com/paradedb/pg_analytics.git /tmp/pg_analytics
     curl -sL "https://github.com/pghydro/pghydro/archive/refs/tags/$PGHYDRO.tar.gz" | tar -xz -C /tmp
     git clone https://github.com/pjungwir/aggs_for_vecs.git /tmp/aggs_for_vecs
     git clone -b "$PG_JSONSCHEMA" https://github.com/supabase/pg_jsonschema.git /tmp/pg_jsonschema
@@ -87,27 +83,23 @@ else
     ( cd /tmp/pg_uuidv7 && sha256sum --ignore-missing --check --quiet SHA256SUMS )
     git clone -b "$PG_GRAPHQL" https://github.com/supabase/pg_graphql.git /tmp/pg_graphql
     git clone -b "$PGCAT" https://github.com/postgresml/pgcat.git /tmp/pgcat
-
     for p in python3-keyring python3-docutils ieee-data; do
         version=$(apt-cache show $p | sed -n 's/^Version: //p' | sort -rV | head -n 1)
         printf "Section: misc\nPriority: optional\nStandards-Version: 3.9.8\nPackage: %s\nVersion: %s\nDescription: %s" "$p" "$version" "$p" > "$p"
         equivs-build "$p"
     done
 fi
-
 if [ "$WITH_PERL" != "true" ]; then
     version=$(apt-cache show perl | sed -n 's/^Version: //p' | sort -rV | head -n 1)
     printf "Priority: standard\nStandards-Version: 3.9.8\nPackage: perl\nMulti-Arch: allowed\nReplaces: perl-base, perl-modules\nVersion: %s\nDescription: perl" "$version" > perl
     equivs-build perl
 fi
-
 curl -sL "https://github.com/zalando-pg/bg_mon/archive/$BG_MON_COMMIT.tar.gz" | tar -xz -C /tmp
 curl -sL "https://github.com/zalando-pg/pg_auth_mon/archive/$PG_AUTH_MON_COMMIT.tar.gz" | tar -xz -C /tmp
 curl -sL "https://github.com/cybertec-postgresql/pg_permissions/archive/$PG_PERMISSIONS_COMMIT.tar.gz" | tar -xz -C /tmp
 curl -sL "https://github.com/zubkov-andrei/pg_profile/archive/$PG_PROFILE.tar.gz" | tar -xz -C /tmp
 git clone -b "$SET_USER" https://github.com/pgaudit/set_user.git /tmp/set_user
 git clone https://github.com/timescale/timescaledb.git /tmp/timescaledb
-
 apt-get install -y \
     postgresql-common \
     libevent-2.1 \
@@ -116,16 +108,12 @@ apt-get install -y \
     libbrotli1 \
     python3.10 \
     python3-psycopg2
-
 # forbid creation of a main cluster when package is installed
 sed -ri 's/#(create_main_cluster) .*$/\1 = false/' /etc/postgresql-common/createcluster.conf
-
 for version in $DEB_PG_SUPPORTED_VERSIONS; do
     PG_CONFIG="/usr/lib/postgresql/$version/bin/pg_config" 
-
     sed -i "s/ main.*$/ main $version/g" /etc/apt/sources.list.d/pgdg.list
     apt-get update -y
-
     if [ "$DEMO" != "true" ]; then
         EXTRAS=("postgresql-pltcl-${version}"
                 "postgresql-${version}-plr"
@@ -153,14 +141,12 @@ for version in $DEB_PG_SUPPORTED_VERSIONS; do
                 "postgresql-${version}-pllua"
                 "postgresql-${version}-pgvector"
                 "postgresql-${version}-pgdg-pgroonga"
+                "postgresql-${version}-age"
                 "postgresql-pgml-${version}")
-
         if [ "$WITH_PERL" = "true" ]; then
             EXTRAS+=("postgresql-plperl-${version}")
         fi
-
     fi
-
     # Install PostgreSQL binaries, contrib, plproxy and multiple pl's
     apt-get install --allow-downgrades -y \
         "postgresql-${version}-cron" \
@@ -171,13 +157,10 @@ for version in $DEB_PG_SUPPORTED_VERSIONS; do
         "postgresql-${version}-pgq3" \
         "postgresql-${version}-pg-stat-kcache" \
         "${EXTRAS[@]}"
-
     if [ "$DEMO" != "true" ] && [ -f "/etc/postgresql/${version}/main/environment" ]; then
         echo "R_HOME=${R.home(component="home")}" >> "/etc/postgresql/${version}/main/environment"
     fi
-
     # Install 3rd party stuff
-
     # use subshell to avoid having to cd back (SC2103)
     (
         cd /tmp/timescaledb
@@ -194,27 +177,22 @@ for version in $DEB_PG_SUPPORTED_VERSIONS; do
             git clean -f -d
         done
     )
-
     if [ "${TIMESCALEDB_APACHE_ONLY}" != "true" ] && [ "${TIMESCALEDB_TOOLKIT}" = "true" ]; then
         echo "deb [signed-by=/usr/share/keyrings/timescale_E7391C94080429FF.gpg] https://packagecloud.io/timescale/timescaledb/ubuntu/ ${CODENAME} main" | tee /etc/apt/sources.list.d/timescaledb.list
         curl -L https://packagecloud.io/timescale/timescaledb/gpgkey | gpg --dearmor > /usr/share/keyrings/timescale_E7391C94080429FF.gpg
-
         apt-get update -y
         if [ "$(apt-cache search --names-only "^timescaledb-toolkit-postgresql-${version}$" | wc -l)" -eq 1 ]; then
             apt-get install -y "timescaledb-toolkit-postgresql-$version"
         else
             echo "Skipping timescaledb-toolkit-postgresql-$version as it's not found in the repository"
         fi
-
         rm /etc/apt/sources.list.d/timescaledb.list
         rm /usr/share/keyrings/timescale_E7391C94080429FF.gpg
     fi
-
     EXTRA_EXTENSIONS=()
     if [ "$DEMO" != "true" ]; then
         EXTRA_EXTENSIONS+=("/tmp/plprofiler" "/tmp/pg_mon-${PG_MON_COMMIT}")
     fi
-
     for n in /tmp/bg_mon-${BG_MON_COMMIT} \
             /tmp/pg_auth_mon-${PG_AUTH_MON_COMMIT} \
             /tmp/set_user \
@@ -223,93 +201,73 @@ for version in $DEB_PG_SUPPORTED_VERSIONS; do
             "${EXTRA_EXTENSIONS[@]}"; do
         make -C "$n" USE_PGXS=1 clean install-strip
     done
-
     if [ "$DEMO" != "true" ]; then
         make -C "/tmp/pgmq/pgmq-extension" PG_CONFIG="$PG_CONFIG"
         make -C "/tmp/pgmq/pgmq-extension" install PG_CONFIG="$PG_CONFIG"
-
         make -C "/tmp/temporal_tables" PG_CONFIG="$PG_CONFIG"
         make -C "/tmp/temporal_tables" install PG_CONFIG="$PG_CONFIG"
-
-        curl -sL "https://github.com/paradedb/paradedb/releases/download/$PG_SEARCH/postgresql-$version-pg-search_$PG_SEARCH_RELEASE-1PARADEDB-${CODENAME}_$ARCH.deb" --output "/tmp/pg_search_${version}.deb"
-        apt-get install -y "/tmp/pg_search_${version}.deb"
-
+        # curl -sL "https://github.com/paradedb/paradedb/releases/download/$PG_SEARCH/postgresql-$version-pg-search_$PG_SEARCH_RELEASE-1PARADEDB-${CODENAME}_$ARCH.deb" --output "/tmp/pg_search_${version}.deb"
+        # apt-get install -y "/tmp/pg_search_${version}.deb"
         mkdir -p "/usr/share/postgresql/$version/extension"
         find "/tmp/pghydro-${PGHYDRO}" -type f \( -name '*.sql' -or -name '*.control' \) -print0 | xargs -0 cp -t "/usr/share/postgresql/$version/extension"
-
         make -C "/tmp/aggs_for_vecs" PG_CONFIG="$PG_CONFIG"
         make -C "/tmp/aggs_for_vecs" install PG_CONFIG="$PG_CONFIG"
-
         cp "/tmp/pg_uuidv7/$version/pg_uuidv7.so" "/usr/lib/postgresql/$version/lib"
         cp "/tmp/pg_uuidv7/pg_uuidv7--$PG_UUIDV7_RELEASE.sql" "/tmp/pg_uuidv7/pg_uuidv7.control" "/usr/share/postgresql/$version/extension"
-
         (
             cd /tmp/pg_jsonschema
             setting_pgrx
             cargo pgrx install --pg-config="$PG_CONFIG" --release
         )
-
         (
             cd /tmp/pg_graphql
             setting_pgrx
             cargo pgrx install --pg-config="$PG_CONFIG" --release
         )
-
         (
             cd /tmp/plprql/plprql
             setting_pgrx
             cargo pgrx install --no-default-features --pg-config="$PG_CONFIG" --release
         )
-
-        (
-            cd /tmp/pg_analytics
-            setting_pgrx
-            cargo pgrx install --pg-config="$PG_CONFIG" --release
-        )
+        # (
+        #     cd /tmp/pg_analytics
+        #     setting_pgrx
+        #     cargo pgrx install --pg-config="$PG_CONFIG" --release
+        # )
         mkdir -p .duckdb/ && chmod -R a+rwX .duckdb/
         mkdir -p /var/lib/postgresql/.duckdb/ && chmod -R a+rwX /var/lib/postgresql/.duckdb/
     fi
 done
-
 apt-get install -y skytools3-ticker pgbouncer
 if [ "$DEMO" != "true" ]; then
-    apt-get install -y pgagent pgbackrest #postgresml-python
-
+    apt-get install -y pgagent pgbackrest postgresml-python
     (
         cd /tmp/pgcat
         cargo build --release
         cp target/release/pgcat /usr/bin/pgcat
     )
-
     go install github.com/xataio/pgroll@"$PGROLL"
-
     curl -sL "https://github.com/PostgREST/postgrest/releases/download/$POSTGREST/postgrest-$POSTGREST-ubuntu-aarch64.tar.xz" | tar -Jx -C /usr/bin
 fi
-
 sed -i "s/ main.*$/ main/g" /etc/apt/sources.list.d/pgdg.list
 apt-get update -y
 apt-get install -y postgresql postgresql-server-dev-all postgresql-all libpq-dev
 for version in $DEB_PG_SUPPORTED_VERSIONS; do
     apt-get install -y "postgresql-server-dev-${version}"
 done
-
 if [ "$DEMO" != "true" ]; then
     for version in $DEB_PG_SUPPORTED_VERSIONS; do
         # create postgis symlinks to make it possible to perform update
         ln -s "postgis-${POSTGIS_VERSION%.*}.so" "/usr/lib/postgresql/${version}/lib/postgis-2.5.so"
     done
 fi
-
 # make it possible for cron to work without root
 gcc -s -shared -fPIC -o /usr/local/lib/cron_unprivileged.so cron_unprivileged.c
-
 apt-get purge -y "${BUILD_PACKAGES[@]}"
 apt-get autoremove -y
-
 if [ "$WITH_PERL" != "true" ] || [ "$DEMO" != "true" ]; then
     dpkg -i ./*.deb || apt-get -y -f install
 fi
-
 # Remove unnecessary packages
 apt-get purge -y \
                 libdpkg-perl \
@@ -324,7 +282,6 @@ apt-get purge -y \
 apt-get autoremove -y
 apt-get clean -y
 dpkg -l | grep '^rc' | awk '{print $2}' | xargs apt-get purge -y
-
 # Try to minimize size by creating symlinks instead of duplicate files
 if [ "$DEMO" != "true" ]; then
     cd "/usr/lib/postgresql/$PGVERSION/bin"
@@ -345,9 +302,7 @@ if [ "$DEMO" != "true" ]; then
             fi
         done
     done
-
     set +x
-
     for v1 in $(find /usr/share/postgresql -type d -mindepth 1 -maxdepth 1 | sort -Vr); do
         # relink files with the same content
         cd "$v1/extension"
@@ -360,7 +315,6 @@ if [ "$DEMO" != "true" ]; then
                 fi
             done
         done <  <(find . -type f -maxdepth 1 -name '*.sql' -not -name '*--*')
-
         for e in pgq pgq_node plproxy address_standardizer address_standardizer_data_us; do
             orig=$(basename "$(find . -maxdepth 1 -type f -name "$e--*--*.sql" | head -n1)")
             if [ "x$orig" != "x" ]; then
@@ -372,7 +326,6 @@ if [ "$DEMO" != "true" ]; then
                 done
             fi
         done
-
         # relink files with the same name and content across different major versions
         started=0
         for v2 in $(find /usr/share/postgresql -type d -mindepth 1 -maxdepth 1 | sort -Vr); do
@@ -401,7 +354,6 @@ if [ "$DEMO" != "true" ]; then
     done
     set -x
 fi
-
 # Clean up
 rm -rf /var/lib/apt/lists/* \
         /var/cache/debconf/* \

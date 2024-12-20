@@ -1,9 +1,6 @@
 CREATE SCHEMA IF NOT EXISTS metric_helpers AUTHORIZATION postgres;
-
 GRANT USAGE ON SCHEMA metric_helpers TO admin, robot_zmon;
-
 SET search_path TO metric_helpers;
-
 -- table and btree bloat estimation queries are borrowed from https://github.com/ioguix/pgsql-bloat-estimation
 CREATE OR REPLACE FUNCTION get_table_bloat_approx (
     OUT t_database name,
@@ -81,9 +78,7 @@ FROM (
   ) AS s2
 ) AS s3 WHERE schemaname NOT LIKE 'information_schema';
 $_$ LANGUAGE sql SECURITY DEFINER IMMUTABLE STRICT SET search_path to 'pg_catalog';
-
 CREATE OR REPLACE VIEW table_bloat AS SELECT * FROM get_table_bloat_approx();
-
 CREATE OR REPLACE FUNCTION get_btree_bloat_approx (
     OUT i_database name,
     OUT i_schema_name name,
@@ -183,16 +178,12 @@ FROM (
   ) AS rows_hdr_pdg_stats
 ) AS relation_stats;
 $_$ LANGUAGE sql SECURITY DEFINER IMMUTABLE STRICT SET search_path to 'pg_catalog';
-
 CREATE OR REPLACE VIEW index_bloat AS SELECT * FROM get_btree_bloat_approx();
-
 CREATE OR REPLACE FUNCTION pg_stat_statements(showtext boolean) RETURNS SETOF public.pg_stat_statements AS
 $$
   SELECT * FROM public.pg_stat_statements(showtext);
 $$ LANGUAGE sql IMMUTABLE SECURITY DEFINER STRICT;
-
 CREATE OR REPLACE VIEW pg_stat_statements AS SELECT * FROM pg_stat_statements(true);
-
 CREATE OR REPLACE FUNCTION get_nearly_exhausted_sequences(
     IN  threshold float,
     OUT schemaname name,
@@ -220,13 +211,9 @@ FROM (
 WHERE seq_percent_used >= threshold;
 $_$
 LANGUAGE sql SECURITY DEFINER STRICT SET search_path to 'pg_catalog';
-
 CREATE OR REPLACE VIEW nearly_exhausted_sequences AS SELECT * FROM get_nearly_exhausted_sequences(0.8);
-
 REVOKE ALL ON ALL TABLES IN SCHEMA metric_helpers FROM public;
 GRANT SELECT ON ALL TABLES IN SCHEMA metric_helpers TO admin, robot_zmon;
-
 REVOKE ALL ON ALL FUNCTIONS IN SCHEMA metric_helpers FROM public;
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA metric_helpers TO admin, robot_zmon;
-
 RESET search_path;

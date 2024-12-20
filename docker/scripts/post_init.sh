@@ -1,12 +1,8 @@
 #!/bin/bash
-
 cd "$(dirname "${BASH_SOURCE[0]}")" || exit 1
-
 export PGOPTIONS="-c synchronous_commit=local -c search_path=pg_catalog"
-
 PGVER=$(psql -d "$2" -XtAc "SELECT pg_catalog.current_setting('server_version_num')::int/10000")
 RESET_ARGS="oid, oid, bigint"
-
 (echo "\set ON_ERROR_STOP on"
 echo "DO \$\$
 BEGIN
@@ -16,7 +12,6 @@ BEGIN
     ELSE
         CREATE ROLE admin CREATEDB;
     END IF;
-
     PERFORM * FROM pg_catalog.pg_authid WHERE rolname = 'cron_admin';
     IF FOUND THEN
         ALTER ROLE cron_admin WITH NOCREATEDB NOLOGIN NOCREATEROLE NOSUPERUSER NOREPLICATION INHERIT;
@@ -24,9 +19,7 @@ BEGIN
         CREATE ROLE cron_admin;
     END IF;
 END;\$\$;
-
 GRANT cron_admin TO admin;
-
 DO \$\$
 BEGIN
     PERFORM * FROM pg_catalog.pg_authid WHERE rolname = '$1';
@@ -36,7 +29,6 @@ BEGIN
         CREATE ROLE $1;
     END IF;
 END;\$\$;
-
 DO \$\$
 BEGIN
     PERFORM * FROM pg_catalog.pg_authid WHERE rolname = 'robot_zmon';
@@ -46,11 +38,9 @@ BEGIN
         CREATE ROLE robot_zmon;
     END IF;
 END;\$\$;
-
 CREATE EXTENSION IF NOT EXISTS pg_auth_mon SCHEMA public;
 ALTER EXTENSION pg_auth_mon UPDATE;
 GRANT SELECT ON TABLE public.pg_auth_mon TO robot_zmon;
-
 CREATE EXTENSION IF NOT EXISTS pg_cron SCHEMA pg_catalog;
 DO \$\$
 BEGIN
@@ -60,7 +50,6 @@ BEGIN
     END IF;
 END;\$\$;
 ALTER EXTENSION pg_cron UPDATE;
-
 ALTER POLICY cron_job_policy ON cron.job USING (username = current_user OR
     (pg_has_role(current_user, 'cron_admin', 'MEMBER')
     AND pg_has_role(username, 'cron_admin', 'MEMBER')
@@ -70,7 +59,6 @@ REVOKE SELECT ON cron.job FROM admin, public;
 GRANT SELECT ON cron.job TO cron_admin;
 REVOKE UPDATE (database, nodename) ON cron.job FROM admin;
 GRANT UPDATE (database, nodename) ON cron.job TO cron_admin;
-
 ALTER POLICY cron_job_run_details_policy ON cron.job_run_details USING (username = current_user OR
     (pg_has_role(current_user, 'cron_admin', 'MEMBER')
     AND pg_has_role(username, 'cron_admin', 'MEMBER')
@@ -78,7 +66,6 @@ ALTER POLICY cron_job_run_details_policy ON cron.job_run_details USING (username
     ));
 REVOKE SELECT ON cron.job_run_details FROM admin, public;
 GRANT SELECT ON cron.job_run_details TO cron_admin;
-
 CREATE OR REPLACE FUNCTION cron.schedule_in_database(p_schedule text, p_database text, p_command text)
 RETURNS bigint
 LANGUAGE plpgsql
@@ -89,19 +76,15 @@ BEGIN
     IF NOT (SELECT rolcanlogin FROM pg_roles WHERE rolname = current_user)
     THEN RAISE 'You cannot create a job using a role that cannot log in';
     END IF;
-
     SELECT schedule INTO l_jobid FROM cron.schedule(p_schedule, p_command);
     UPDATE cron.job SET database = p_database, nodename = '' WHERE jobid = l_jobid;
     RETURN l_jobid;
 END;
 \$function\$;
-
 REVOKE EXECUTE ON ALL FUNCTIONS IN SCHEMA cron FROM admin, public;
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA cron TO cron_admin;
-
 REVOKE USAGE ON SCHEMA cron FROM admin;
 GRANT USAGE ON SCHEMA cron TO cron_admin;
-
 CREATE EXTENSION IF NOT EXISTS file_fdw SCHEMA public;
 DO \$\$
 BEGIN
@@ -110,7 +93,6 @@ BEGIN
         CREATE SERVER pglog FOREIGN DATA WRAPPER file_fdw;
     END IF;
 END;\$\$;
-
 CREATE TABLE IF NOT EXISTS public.postgres_log (
     log_time timestamp(3) with time zone,
     user_name text,
@@ -145,13 +127,11 @@ if [ "$PGVER" -ge 14 ]; then
     echo "ALTER TABLE public.postgres_log ADD COLUMN IF NOT EXISTS leader_pid integer;"
     echo "ALTER TABLE public.postgres_log ADD COLUMN IF NOT EXISTS query_id bigint;"
 fi
-
 # Sunday could be 0 or 7 depending on the format, we just create both
 for i in $(seq 0 7); do
     echo "CREATE FOREIGN TABLE IF NOT EXISTS public.postgres_log_$i () INHERITS (public.postgres_log) SERVER pglog
     OPTIONS (filename '../pg_log/postgresql-$i.csv', format 'csv', header 'false');
 GRANT SELECT ON public.postgres_log_$i TO admin;
-
 CREATE OR REPLACE VIEW public.failed_authentication_$i WITH (security_barrier) AS
 SELECT *
   FROM public.postgres_log_$i
@@ -161,9 +141,7 @@ ALTER VIEW public.failed_authentication_$i OWNER TO postgres;
 GRANT SELECT ON TABLE public.failed_authentication_$i TO robot_zmon;
 "
 done
-
 cat _zmon_schema.dump
-
 while IFS= read -r db_name; do
     echo "\c ${db_name}"
     # In case if timescaledb binary is missing the first query fails with the error

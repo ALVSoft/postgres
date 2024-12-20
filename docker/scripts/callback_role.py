@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 import json
 import logging
 import requests
@@ -8,18 +7,13 @@ import os
 import socket
 import sys
 import time
-
 KUBE_SERVICE_DIR = '/var/run/secrets/kubernetes.io/serviceaccount/'
 KUBE_NAMESPACE_FILENAME = KUBE_SERVICE_DIR + 'namespace'
 KUBE_TOKEN_FILENAME = KUBE_SERVICE_DIR + 'token'
 KUBE_CA_CERT = KUBE_SERVICE_DIR + 'ca.crt'
-
 KUBE_API_URL = 'https://kubernetes.default.svc.cluster.local/api/v1/namespaces'
-
 logger = logging.getLogger(__name__)
-
 LABEL = os.environ.get("KUBERNETES_ROLE_LABEL", 'spilo-role')
-
 
 def read_first_line(filename):
     try:
@@ -28,10 +22,8 @@ def read_first_line(filename):
     except IOError:
         return None
 
-
 def read_token():
     return read_first_line(KUBE_TOKEN_FILENAME)
-
 
 def api_patch(namespace, kind, name, entity_name, body):
     api_url = '/'.join([KUBE_API_URL, namespace, kind, name])
@@ -57,11 +49,9 @@ def api_patch(namespace, kind, name, entity_name, body):
         time.sleep(2 ** count * 0.5)
         count += 1
 
-
 def change_pod_role_label(namespace, new_role):
     body = json.dumps({'metadata': {'labels': {LABEL: new_role}}})
     api_patch(namespace, 'pods', os.environ['HOSTNAME'], '{} label'.format(LABEL), body)
-
 
 def change_endpoints(namespace, cluster):
     ip = socket.getaddrinfo(socket.gethostname(), 0, socket.AF_UNSPEC, socket.SOCK_STREAM, 0)[0][4][0]
@@ -73,7 +63,6 @@ def change_endpoints(namespace, cluster):
     except Exception:
         pass
 
-
 def record_role_change(action, new_role, cluster):
     new_role = None if action == 'on_stop' else new_role
     logger.debug("Changing the pod's role to %s", new_role)
@@ -82,7 +71,6 @@ def record_role_change(action, new_role, cluster):
         change_endpoints(pod_namespace, cluster)
     change_pod_role_label(pod_namespace, new_role)
 
-
 def main():
     logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s', level=logging.INFO)
     if len(sys.argv) == 4 and sys.argv[1] in ('on_start', 'on_stop', 'on_role_change', 'on_restart'):
@@ -90,7 +78,6 @@ def main():
     else:
         sys.exit('Usage: %s <action> <role> <cluster_name>', sys.argv[0])
     return 0
-
 
 if __name__ == '__main__':
     main()

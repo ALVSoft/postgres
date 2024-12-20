@@ -1,24 +1,15 @@
 # Dockerfile and Dockerfile.citus
 You can run Patroni in a docker container using these Dockerfiles
-
 They are meant in aiding development of Patroni and quick testing of features and not a production-worthy!
-
     docker build -t patroni .
     docker build -f Dockerfile.citus -t patroni-citus .
-
 # Examples
-
 ## Standalone Patroni
-
     docker run -d patroni
-
 ## Three-node Patroni cluster
-
 In addition to three Patroni containers the stack starts three containers with etcd (forming a three-node cluster), and one container with haproxy.
 The haproxy listens on ports 5000 (connects to the primary) and 5001 (does load-balancing between healthy standbys).
-
 Example session:
-
     $ docker compose up -d
     ✔ Network patroni_demo     Created
     ✔ Container demo-etcd1     Started
@@ -28,7 +19,6 @@ Example session:
     ✔ Container demo-patroni3  Started
     ✔ Container demo-etcd2     Started
     ✔ Container demo-etcd3     Started
-
     $ docker ps
     CONTAINER ID   IMAGE     COMMAND                  CREATED          STATUS          PORTS                                                           NAMES
     a37bcec56726   patroni   "/bin/sh /entrypoint…"   15 minutes ago   Up 15 minutes                                                                   demo-etcd3
@@ -38,7 +28,6 @@ Example session:
     814b4304d132   patroni   "/bin/sh /entrypoint…"   15 minutes ago   Up 15 minutes   0.0.0.0:5000-5001->5000-5001/tcp, :::5000-5001->5000-5001/tcp   demo-haproxy
     6375b0ba2d0a   patroni   "/bin/sh /entrypoint…"   15 minutes ago   Up 15 minutes                                                                   demo-patroni1
     aef8bf3ee91f   patroni   "/bin/sh /entrypoint…"   15 minutes ago   Up 15 minutes                                                                   demo-etcd1
-
     $ docker logs demo-patroni1
     2023-11-21 09:04:33,547 INFO: Selected new etcd server http://172.29.0.3:2379
     2023-11-21 09:04:33,605 INFO: Lock owner: None; I am patroni1
@@ -62,7 +51,6 @@ Example session:
     2023-11-21 09:04:45,322 INFO: no action. I am (patroni1), the leader with the lock
     2023-11-21 09:04:55,320 INFO: no action. I am (patroni1), the leader with the lock
     ...
-
     $ docker exec -ti demo-patroni1 bash
     postgres@patroni1:~$ patronictl list
     + Cluster: demo (7303838734793224214) --------+----+-----------+
@@ -72,7 +60,6 @@ Example session:
     | patroni2 | 172.29.0.6 | Replica | streaming |  1 |         0 |
     | patroni3 | 172.29.0.5 | Replica | streaming |  1 |         0 |
     +----------+------------+---------+-----------+----+-----------+
-
     postgres@patroni1:~$ etcdctl get --keys-only --prefix /service/demo
     /service/demo/config
     /service/demo/initialize
@@ -81,47 +68,36 @@ Example session:
     /service/demo/members/patroni2
     /service/demo/members/patroni3
     /service/demo/status
-
     postgres@patroni1:~$ etcdctl member list
     2bf3e2ceda5d5960, started, etcd2, http://etcd2:2380, http://172.29.0.3:2379
     55b3264e129c7005, started, etcd3, http://etcd3:2380, http://172.29.0.7:2379
     acce7233f8ec127e, started, etcd1, http://etcd1:2380, http://172.29.0.8:2379
 
-
     postgres@patroni1:~$ exit
-
     $ docker exec -ti demo-haproxy bash
     postgres@haproxy:~$ psql -h localhost -p 5000 -U postgres -W
     Password: postgres
     psql (15.5 (Debian 15.5-1.pgdg120+1))
     Type "help" for help.
-
     postgres=# SELECT pg_is_in_recovery();
      pg_is_in_recovery
     ───────────────────
      f
     (1 row)
-
     postgres=# \q
-
     postgres@haproxy:~$ psql -h localhost -p 5001 -U postgres -W
     Password: postgres
     psql (15.5 (Debian 15.5-1.pgdg120+1))
     Type "help" for help.
-
     postgres=# SELECT pg_is_in_recovery();
      pg_is_in_recovery
     ───────────────────
      t
     (1 row)
-
 ## Citus cluster
-
 The stack starts three containers with etcd (forming a three-node etcd cluster), seven containers with Patroni+PostgreSQL+Citus (three coordinator nodes, and two worker clusters with two nodes each), and one container with haproxy.
 The haproxy listens on ports 5000 (connects to the coordinator primary) and 5001 (does load-balancing between worker primary nodes).
-
 Example session:
-
     $ docker compose -f docker-compose-citus.yml up -d
     ✔ Network patroni_demo    Created
     ✔ Container demo-coord2   Started
@@ -136,7 +112,6 @@ Example session:
     ✔ Container demo-coord3   Started
     ✔ Container demo-etcd2    Started
 
-
     $ docker ps
     CONTAINER ID   IMAGE           COMMAND                  CREATED          STATUS          PORTS                                                           NAMES
     79c95492fac9   patroni-citus   "/bin/sh /entrypoint…"   11 minutes ago   Up 11 minutes                                                                   demo-etcd3
@@ -150,7 +125,6 @@ Example session:
     f02e96dcc9d6   patroni-citus   "/bin/sh /entrypoint…"   11 minutes ago   Up 11 minutes                                                                   demo-coord3
     6945834b7056   patroni-citus   "/bin/sh /entrypoint…"   11 minutes ago   Up 11 minutes                                                                   demo-coord1
     b96ca42f785d   patroni-citus   "/bin/sh /entrypoint…"   11 minutes ago   Up 11 minutes   0.0.0.0:5000-5001->5000-5001/tcp, :::5000-5001->5000-5001/tcp   demo-haproxy
-
 
     $ docker logs demo-coord1
     2023-11-21 09:36:14,293 INFO: Selected new etcd server http://172.30.0.4:2379
@@ -196,13 +170,11 @@ Example session:
     2023-11-21 09:36:30,626 INFO: no action. I am (coord1), the leader with the lock
     2023-11-21 09:36:38,250 INFO: no action. I am (coord1), the leader with the lock
     ...
-
     $ docker exec -ti demo-haproxy bash
     postgres@haproxy:~$ etcdctl member list
     2b28411e74c0c281, started, etcd3, http://etcd3:2380, http://172.30.0.4:2379
     6c70137d27cfa6c1, started, etcd2, http://etcd2:2380, http://172.30.0.5:2379
     a28f9a70ebf21304, started, etcd1, http://etcd1:2380, http://172.30.0.6:2379
-
     postgres@haproxy:~$ etcdctl get --keys-only --prefix /service/demo
     /service/demo/0/config
     /service/demo/0/initialize
@@ -226,19 +198,16 @@ Example session:
     /service/demo/2/members/work2-2
     /service/demo/2/status
     /service/demo/2/sync
-
     postgres@haproxy:~$ psql -h localhost -p 5000 -U postgres -d citus
     Password for user postgres: postgres
     psql (15.5 (Debian 15.5-1.pgdg120+1))
     SSL connection (protocol: TLSv1.3, cipher: TLS_AES_256_GCM_SHA384, compression: off)
     Type "help" for help.
-
     citus=# select pg_is_in_recovery();
      pg_is_in_recovery
     -------------------
      f
     (1 row)
-
     citus=# table pg_dist_node;
      nodeid | groupid |  nodename  | nodeport | noderack | hasmetadata | isactive | noderole | nodecluster | metadatasynced | shouldhaveshards 
     --------+---------+------------+----------+----------+-------------+----------+----------+-------------+----------------+------------------
@@ -246,9 +215,7 @@ Example session:
           2 |       1 | 172.30.0.7 |     5432 | default  | t           | t        | primary  | default     | t              | t
           3 |       2 | 172.30.0.8 |     5432 | default  | t           | t        | primary  | default     | t              | t
     (3 rows)
-
     citus=# \q
-
     postgres@haproxy:~$ patronictl list
     + Citus cluster: demo ----------+--------------+-----------+----+-----------+
     | Group | Member  | Host        | Role         | State     | TL | Lag in MB |
@@ -261,7 +228,6 @@ Example session:
     |     2 | work2-1 | 172.30.0.8  | Leader       | running   |  1 |           |
     |     2 | work2-2 | 172.30.0.11 | Sync Standby | streaming |  1 |         0 |
     +-------+---------+-------------+--------------+-----------+----+-----------+
-
 
     postgres@haproxy:~$ patronictl switchover --group 2 --force
     Current cluster topology
@@ -278,7 +244,6 @@ Example session:
     | work2-1 | 172.30.0.8  | Replica | stopped |    |   unknown |
     | work2-2 | 172.30.0.11 | Leader  | running |  1 |           |
     +---------+-------------+---------+---------+----+-----------+
-
     postgres@haproxy:~$ patronictl list
     + Citus cluster: demo ----------+--------------+-----------+----+-----------+
     | Group | Member  | Host        | Role         | State     | TL | Lag in MB |
@@ -291,12 +256,10 @@ Example session:
     |     2 | work2-1 | 172.30.0.8  | Sync Standby | streaming |  2 |         0 |
     |     2 | work2-2 | 172.30.0.11 | Leader       | running   |  2 |           |
     +-------+---------+-------------+--------------+-----------+----+-----------+
-
     postgres@haproxy:~$ psql -h localhost -p 5000 -U postgres -d citus
     psql (15.5 (Debian 15.5-1.pgdg120+1))
     SSL connection (protocol: TLSv1.3, cipher: TLS_AES_256_GCM_SHA384, compression: off)
     Type "help" for help.
-
     citus=# table pg_dist_node;
      nodeid | groupid |  nodename   | nodeport | noderack | hasmetadata | isactive | noderole | nodecluster | metadatasynced | shouldhaveshards 
     --------+---------+-------------+----------+----------+-------------+----------+----------+-------------+----------------+------------------

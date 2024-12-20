@@ -4,13 +4,10 @@ ARG CGAL_GIT_BRANCH=5.6.x-branch
 FROM postgres:${PG_MAJOR_VERSION} AS builder
 ARG PG_MAJOR_VERSION
 ARG DOCKER_CMAKE_BUILD_TYPE
-
 LABEL maintainer="TKamitaSoft Service - https://tkamitasoft.com" \
       org.opencontainers.image.description="TKamitaSoft PostgrSQL database" \
       org.opencontainers.image.source="https://gitlab.com/tkamitasoft/apps/host"
-
 WORKDIR /
-
 # apt-get install
 RUN set -ex \
     && apt-get update -y \
@@ -76,9 +73,7 @@ RUN set -ex \
         libqhull-dev \
         libwebp-dev \
         libzstd-dev
-
 ENV DOCKER_CMAKE_BUILD_TYPE=${DOCKER_CMAKE_BUILD_TYPE}
-
 # cgal & sfcgal
 # By utilizing the latest commit of the CGAL 5.x.x-branch and implementing a header-only build for SFCGAL,
 # one can benefit from the latest CGAL patches while avoiding compatibility issues.
@@ -116,7 +111,6 @@ RUN set -ex \
     # clean
     && rm -fr /usr/src/SFCGAL \
     && rm -fr /usr/src/cgal
-
 # proj
 ENV PROJ_GIT_HASH=356496f7b60ee0235189dd51d99aac700fbd2bdc
 RUN set -ex \
@@ -146,7 +140,6 @@ RUN set -ex \
     fi \
     \
     && rm -fr /usr/src/PROJ
-
 # geos
 ENV GEOS_GIT_HASH=a8d2ed0aba46f88f9b8987526e68eea6565d16ae
 RUN set -ex \
@@ -162,7 +155,6 @@ RUN set -ex \
     && make install \
     && cd / \
     && rm -fr /usr/src/geos
-
 # gdal
 ENV GDAL_GIT_HASH=d7aed6e0b03f949ba40684f868c63a08d89177b1
 RUN set -ex \
@@ -232,7 +224,6 @@ RUN set -ex \
     && make install \
     && cd / \
     && rm -fr /usr/src/gdal
-
 # Minimal command line test.
 RUN set -ex \
     && ldconfig \
@@ -244,15 +235,12 @@ RUN set -ex \
     && proj \
     && sfcgal-config --version \
     && pcre-config  --version
-
 # -------------------------------------------
 # STAGE  final
 # -------------------------------------------
 FROM postgres:${PG_MAJOR_VERSION}
-
 ARG DOCKER_CMAKE_BUILD_TYPE
 ENV DOCKER_CMAKE_BUILD_TYPE=${DOCKER_CMAKE_BUILD_TYPE}
-
 RUN set -ex \&& apt-get update -y \
     && apt-get install -y --no-install-recommends \
         curl \
@@ -290,10 +278,8 @@ RUN set -ex \&& apt-get update -y \
         libqhull-r8.0 \
     && apt-get clean -y \
     && rm -rf /var/lib/apt/lists/*
-
 COPY --from=builder /_pgis*.* /
 COPY --from=builder /usr/local /usr/local
-
 ARG CGAL_GIT_BRANCH
 ENV CGAL_GIT_BRANCH=${CGAL_GIT_BRANCH}
 ENV CGAL5X_GIT_HASH=188e51bad36ffc30e49dbabda29620b71a84664c
@@ -301,7 +287,6 @@ ENV SFCGAL_GIT_HASH=61f3b08ade49493b56c6bafa98c7c1f84addbc10
 ENV PROJ_GIT_HASH=356496f7b60ee0235189dd51d99aac700fbd2bdc
 ENV GEOS_GIT_HASH=a8d2ed0aba46f88f9b8987526e68eea6565d16ae
 ENV GDAL_GIT_HASH=d7aed6e0b03f949ba40684f868c63a08d89177b1
-
 # Minimal command line test ( fail fast )
 RUN set -ex \
     && ldconfig \
@@ -317,7 +302,6 @@ RUN set -ex \
     # Testing ogr2ogr PostgreSQL driver.
     && ogr2ogr --formats | grep -q "PostgreSQL/PostGIS" && exit 0 \
             || echo "ogr2ogr missing PostgreSQL driver" && exit 1
-
 # install postgis, pgvector, pgmq, pg_partman, potgresml, pgcat, patroni, pgcopydb
 ENV POSTGIS_GIT_HASH=8ed84517a9b86c86724504d1b6a0f0c1ccd86cf6
 ENV PGVECTOR_GIT_HASH=v0.7.2
@@ -325,7 +309,6 @@ ENV PGMQ_GIT_HASH=v1.3.3
 ENV PGPARTMAN_GIT_HASH=v5.1.0
 ENV TZ=UTC
 ENV DEBIAN_FRONTEND=noninteractive
-
 RUN set -ex \
     && export DEBIAN_FRONTEND=noninteractive \
     && apt-get update -y \
@@ -506,19 +489,15 @@ RUN set -ex \
     xsltproc \
     && apt-get clean -y \
     && rm -rf /var/lib/apt/lists/* /root/.cache
-
 RUN mkdir -p /docker-entrypoint-initdb.d
 COPY ./postgis/initdb-postgis.sh /docker-entrypoint-initdb.d/10_postgis.sh
 COPY ./postgis/update-postgis.sh /usr/local/bin
-
 COPY ./patroni/entrypoint.sh /
-
 EXPOSE 5432 8008
 ENV LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8 EDITOR=/usr/bin/editor
 USER postgres
 WORKDIR /home/postgres
 CMD ["/bin/bash", "/entrypoint.sh"]
-
 # last final test
 RUN set -ex \
     && ldconfig \

@@ -1,10 +1,7 @@
 #!/bin/bash
-
 readonly HUMAN_ROLE=$1
 shift
-
 "$@"
-
 
 readonly dbname=postgres
 if [[ "${*: -3:1}" == "on_role_change" && "${*: -2:1}" == "master" ]]; then

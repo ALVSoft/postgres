@@ -1,15 +1,12 @@
 #!/bin/bash
 cd "$(dirname "${BASH_SOURCE[0]}")" || exit 1
-
 # shellcheck disable=SC1091
 source ../test_utils.sh
-
 TEST_CONTAINER_NAME='spilo-test'
 TEST_IMAGE=(
     'registry.opensource.zalan.do/acid/spilo-cdp-14'
     'spilo'
 )
-
 function main() {
     for i in 0 1; do
         rm_container "$TEST_CONTAINER_NAME"
@@ -30,11 +27,8 @@ function main() {
         /bin/bash -x ./generate_data.sh "$TEST_CONTAINER_NAME" "/home/postgres/output${i}.txt"
         docker exec "$TEST_CONTAINER_NAME" mv "/home/postgres/output${i}.txt" "/home/postgres/tests"
     done
-
     diff -u output0.txt output1.txt > /dev/null || (echo "Outputs are different!" && exit 1)
     rm -f output0.txt output1.txt
 }
-
 trap 'rm_container $TEST_CONTAINER_NAME' QUIT TERM EXIT
-
 main

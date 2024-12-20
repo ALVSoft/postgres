@@ -131,7 +131,6 @@ spec:
       resources:
         requests:
           storage: 10Gi
-
 ---
 apiVersion: v1
 kind: Endpoints
@@ -141,7 +140,6 @@ metadata:
     application: spilo
     spilo-cluster: *cluster_name
 subsets: []
-
 ---
 apiVersion: v1
 kind: Service
@@ -156,7 +154,6 @@ spec:
   - name: postgresql
     port: 5432
     targetPort: 5432
-
 ---
 # headless service to avoid deletion of patronidemo-config endpoint
 apiVersion: v1
@@ -168,7 +165,6 @@ metadata:
     spilo-cluster: zalandodemo01
 spec:
   clusterIP: None
-
 ---
 apiVersion: v1
 kind: Secret
@@ -182,13 +178,11 @@ data:
   superuser-password: emFsYW5kbw==
   replication-password: cmVwLXBhc3M=
   admin-password: YWRtaW4=
-
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: operator
-
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -242,7 +236,6 @@ rules:
   - services
   verbs:
   - create
-
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding

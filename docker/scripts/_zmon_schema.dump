@@ -1,8 +1,6 @@
 RESET ROLE;
 SET ROLE TO postgres;
-
 DROP SCHEMA IF EXISTS zmon_utils CASCADE;
-
 DO $$
 BEGIN
     PERFORM * FROM pg_catalog.pg_language WHERE lanname = 'plpython3u' AND NOT EXISTS (SELECT 1 FROM pg_catalog.pg_extension WHERE extname = 'plpython3u');
@@ -12,23 +10,18 @@ BEGIN
         CREATE EXTENSION IF NOT EXISTS plpython3u;
     END IF;
 END;$$;
-
 -- remove plpython2 leftovers
 DROP LANGUAGE IF EXISTS plpythonu;
 DROP FUNCTION IF EXISTS plpython_call_handler();
 DROP FUNCTION IF EXISTS plpython_inline_handler(internal);
 DROP FUNCTION IF EXISTS plpython_validator(oid);
-
 CREATE SCHEMA zmon_utils;
-
 GRANT USAGE ON SCHEMA zmon_utils TO robot_zmon;
-
 SET search_path TO zmon_utils, public;
 CREATE TYPE zmon_utils.system_information AS (
     parameter TEXT,
     setting TEXT
 );
-
 CREATE OR REPLACE FUNCTION zmon_utils.get_database_cluster_information()
 RETURNS TABLE ( parameter text, setting text )
 AS $BODY$
@@ -53,12 +46,10 @@ BEGIN
   SELECT ('x'||lpad(split_part(xlog_location_string, '/', 2), 16, '0'))::bit(64)::bigint INTO wal_offset;
   SELECT 1 FROM pg_ls_dir('.') as t(name) WHERE name = 'dontsync' INTO nosync;
   wal_multiplier = CAST(x'FFFFFFFF' as bigint);
-
   IF in_recovery
   THEN
     wal_delay_seconds := extract(epoch from now() - pg_last_xact_replay_timestamp())::bigint;
   END IF;
-
   RETURN QUERY
   SELECT 'zmon_utils_version', '11'
    UNION ALL
@@ -129,49 +120,39 @@ $BODY$
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path to 'pg_catalog';
-
 CREATE OR REPLACE FUNCTION zmon_utils.get_database_cluster_system_information()
 RETURNS SETOF zmon_utils.system_information
 AS
 $BODY$
 """
 NOTE: this is python 2.5 compatible code
-
 This function returns the system related data of the database cluster related disks.
 It can be slow, so do not call it too often
-
 load.1
 load.5
 load.15
 cpu.count
-
 xlog.location
 xlog.size
 xlog.device.name
 xlog.device.total
 xlog.device.used
 xlog.devide.free
-
 tablespace.<tablespacename>.size
 tablespace.<tablespacename>.device
 # for example
 tablespace.pg_default.size
 tablespace.pg_default.location
 tablespace.pg_default.device
-
 memory.commmit.diff
-
 platform.release
 platform.version
 platform.kernel
-
 vm.overcommit_memory
 vm.overcommit_ratio
-
 """
 import os
 import platform
-
 
 def get_mount_point(pathname):
     "Get the mount point of the filesystem containing pathname"
@@ -184,7 +165,6 @@ def get_mount_point(pathname):
             break
         parent_device = os.stat(pathname).st_dev
     return mount_point
-
 
 def get_mounted_device(pathname):
     "Get the device mounted at pathname"
@@ -205,7 +185,6 @@ def get_mounted_device(pathname):
         pass
     return None  # explicit
 
-
 def get_fs_space(pathname):
     "Get the free space of the filesystem containing pathname"
     stat = os.statvfs(pathname)
@@ -214,7 +193,6 @@ def get_fs_space(pathname):
     total = stat.f_blocks * stat.f_bsize
     free = stat.f_bavail * stat.f_bsize
     return total, free,
-
 
 def get_dir_size(pathname):
     """ Get the total size of the directory in bytes.
@@ -243,7 +221,6 @@ def get_dir_size(pathname):
                 pass
     return size
 
-
 def collect_tablespaces_stats(data_directory):
     """ fetch tablespaces names and oid - the latter is necessary
         to get the sizes information from the file system
@@ -256,7 +233,6 @@ def collect_tablespaces_stats(data_directory):
     else:
         plan = plpy.prepare("SELECT oid, spcname FROM pg_catalog.pg_tablespace")
         SD['stmt_tablespaces'] = plan
-
     rv = plpy.execute(plan)
     for r in rv:
         ts[r["oid"]] = r["spcname"]
@@ -272,15 +248,12 @@ def collect_tablespaces_stats(data_directory):
         result.update(stats)
     return result
 
-
 def get_platform_information():
     result = {}
     result['platform.version'] = platform.version()
     result['platform.release'] = platform.release()
     result['platform.kernel']  = (platform.release() or '').split('-')[0]
-
     return result
-
 
 def collect_directory_stats(path, prefix):
     """ Collect real location, size, mount device, total and free space on a device for a dir """
@@ -295,10 +268,8 @@ def collect_directory_stats(path, prefix):
     stat[prefix+'.size'] = get_dir_size(location)
     return stat
 
-
 def get_load_average():
     return dict(zip(('load.1', 'load.5', 'load.15'), os.getloadavg()))
-
 
 def get_number_of_cpus():
     try:
@@ -308,7 +279,6 @@ def get_number_of_cpus():
     except IOError:
         # on other system, basically on Solaris, this file doesn't exist
         pass
-
 
 def get_memory_info():
     "Get the memory info"
@@ -344,7 +314,6 @@ def get_memory_info():
     if commit_limit and committed_as:
         mem_info['memory.commit.diff'] = commit_limit - committed_as
     return mem_info
-
 def get_vm_info():
     "get information about virtual memory configuration, specifically overcommit settings"
     vm_info = {}
@@ -362,37 +331,30 @@ def get_vm_info():
     except EnvironmentError:
         pass
     return vm_info
-
 if "stmt_settings" in SD:
     plan = SD["stmt_settings"]
 else:
     plan = plpy.prepare("SELECT name, setting FROM pg_catalog.pg_settings WHERE name in ('data_directory', 'log_directory', 'server_version_num')")
     SD["stmt_settings"] = plan
-
 rv = plpy.execute(plan)
 s = {}
 for r in rv:
     s[r["name"]] = r["setting"]
-
 data_directory = s["data_directory"]
 log_directory = s["log_directory"] = os.path.join(data_directory, s["log_directory"])
 pg_tblspc = os.path.join(data_directory, "pg_tblspc")
 pg_xlog = os.path.join(data_directory, "pg_wal")
-
 result = {}
-
 # get tablespaces (including pg_default)
 ts_stats = collect_tablespaces_stats(data_directory)
 if len(ts_stats) > 0:
     result.update(ts_stats)
-
 #get xlog and log directories
 for (path, prefix) in ((pg_xlog, 'xlog'), (log_directory, 'log')):
     if os.path.isdir(path):
         stats = collect_directory_stats(path, prefix)
         if len(stats) > 0:
             result.update(stats)
-
 result.update(get_platform_information())
 result.update(get_load_average())
 result.update(get_number_of_cpus())
@@ -402,14 +364,11 @@ if mem_info:
 vm_info = get_vm_info()
 if vm_info:
     result.update(vm_info)
-
 return result.items()
-
 $BODY$
 LANGUAGE plpython3u
 SECURITY DEFINER
 SET search_path to 'pg_catalog';
-
 CREATE OR REPLACE FUNCTION zmon_utils.get_last_status_active_cronjobs(
   OUT jobid bigint,
   OUT database text,
@@ -434,14 +393,10 @@ SELECT DISTINCT ON (job_run_details.jobid)
  ORDER BY job_run_details.jobid, job_run_details.start_time DESC NULLS LAST;
 $BODY$
 LANGUAGE sql SECURITY DEFINER STRICT SET search_path to 'cron';
-
 REVOKE EXECUTE ON FUNCTION zmon_utils.get_last_status_active_cronjobs() FROM public;
-
 CREATE OR REPLACE VIEW zmon_utils.last_status_active_cronjobs AS SELECT * FROM zmon_utils.get_last_status_active_cronjobs();
-
 REVOKE ALL ON TABLE zmon_utils.last_status_active_cronjobs FROM public;
 GRANT SELECT ON TABLE zmon_utils.last_status_active_cronjobs TO robot_zmon;
-
 CREATE OR REPLACE FUNCTION zmon_utils.get_replay_lag(
  OUT pid integer,
  OUT usesysid oid,
@@ -459,12 +414,8 @@ SELECT pid,
  ORDER BY replay_lag DESC NULLS LAST;
 $BODY$
 LANGUAGE sql SECURITY DEFINER STRICT SET search_path to 'pg_catalog';
-
 CREATE OR REPLACE VIEW zmon_utils.replay_lag AS SELECT * FROM zmon_utils.get_replay_lag();
-
 REVOKE EXECUTE ON FUNCTION zmon_utils.get_replay_lag() FROM public;
 REVOKE ALL ON TABLE zmon_utils.replay_lag FROM public;
-
 GRANT SELECT ON TABLE zmon_utils.replay_lag TO robot_zmon;
-
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA zmon_utils TO robot_zmon;
